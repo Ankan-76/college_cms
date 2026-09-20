@@ -1,0 +1,21 @@
+{
+  "name": "GreenField College CMS",
+  "short_name": "GFC CMS",
+  "description": "Next generation college management and administrative portal.",
+  "start_url": "/college_cms/index.php",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#4f46e5",
+  "icons": [
+    {
+      "src": "https://ui-avatars.com/api/?name=GFC&background=4f46e5&color=fff&size=192",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://ui-avatars.com/api/?name=GFC&background=4f46e5&color=fff&size=512",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

@@ -17,6 +17,7 @@ if ($role === 'ADMIN') {
         ['label' => 'Students', 'url' => '/views/admin/students.php'],
         ['label' => 'Faculty', 'url' => '/views/admin/faculty.php'],
         ['label' => 'Notices', 'url' => '/views/admin/notices.php'],
+        ['label' => 'Feedbacks', 'url' => '/views/admin/view-feedback.php'],
     ];
     $more_links = [
         ['label' => 'Departments', 'url' => '/views/admin/departments.php'],
@@ -29,6 +30,7 @@ if ($role === 'ADMIN') {
         ['label' => 'My Students', 'url' => '/views/faculty/my_students.php'],
         ['label' => 'My Subjects', 'url' => '/views/faculty/my_subjects.php'],
         ['label' => 'Attendance', 'url' => '/views/faculty/take_attendance.php'],
+        ['label' => 'Feedback', 'url' => '/feedback.php'],
     ];
     $more_links = [
         ['label' => 'Marks', 'url' => '/views/faculty/manage_marks.php'],
@@ -41,6 +43,7 @@ if ($role === 'ADMIN') {
         ['label' => 'My Subjects', 'url' => '/views/student/my_subjects.php'],
         ['label' => 'My Timetable', 'url' => '/views/student/my_timetable.php'],
         ['label' => 'My Attendance', 'url' => '/views/student/my_attendance.php'],
+        ['label' => 'Feedback', 'url' => '/feedback.php'],
     ];
     $more_links = [
         ['label' => 'Study Materials', 'url' => '/views/student/study_materials.php'],
@@ -54,12 +57,14 @@ if ($role === 'ADMIN') {
         ['label' => 'Home', 'url' => $base_url . '/#home'],
         ['label' => 'About', 'url' => $base_url . '/#about'],
         ['label' => 'Portals', 'url' => $base_url . '/#portals'],
+        ['label' => 'Feedback', 'url' => $base_url . '/feedback.php'],
         ['label' => 'Contact', 'url' => $base_url . '/#contact'],
     ];
     $more_links = [
         ['label' => 'Student Portal', 'url' => $base_url . '/views/auth/student_login.php'],
         ['label' => 'Faculty Portal', 'url' => $base_url . '/views/auth/faculty_login.php'],
         ['label' => 'Admin Portal', 'url' => $base_url . '/views/auth/admin_login.php'],
+        ['label' => 'Submit Feedback', 'url' => $base_url . '/feedback.php'],
     ];
 }
 ?>

@@ -221,6 +221,7 @@ $pageTitle = 'Greenfield College — College Management System';
                     <a href="#about" class="text-sm font-semibold text-slate-600 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 transition-colors">About</a>
                     <a href="#programs" class="text-sm font-semibold text-slate-600 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 transition-colors">Programs</a>
                     <a href="#portals" class="text-sm font-semibold text-slate-600 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 transition-colors">Portals</a>
+                    <a href="<?= $base ?>/feedback.php" class="text-sm font-semibold text-slate-600 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 transition-colors">Feedback</a>
                     <a href="#contact" class="text-sm font-semibold text-slate-600 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 transition-colors">Contact</a>
                 </div>
                 
@@ -514,6 +515,17 @@ $pageTitle = 'Greenfield College — College Management System';
                     <h4 class="font-bold text-slate-900 dark:text-white mb-1">Office Hours</h4>
                     <p class="text-sm text-slate-500 dark:text-slate-400">Mon - Sat: 9:00 AM - 5:00 PM</p>
                 </div>
+            </div>
+
+            <!-- Feedback CTA Banner -->
+            <div class="mt-12 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-indigo-500/10 rounded-2xl p-8 border border-indigo-200/50 dark:border-indigo-800/40 flex flex-col sm:flex-row items-center justify-between gap-6 text-center sm:text-left">
+                <div>
+                    <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-1">Have Suggestions or Opinions?</h3>
+                    <p class="text-sm text-slate-600 dark:text-slate-400">We welcome feedback from students, faculty, parents, and campus visitors anytime.</p>
+                </div>
+                <a href="<?= $base ?>/feedback.php" class="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl text-sm font-bold shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 hover:-translate-y-0.5 transition-all flex-shrink-0">
+                    <i data-lucide="message-square-heart" class="w-4 h-4"></i> Give Feedback
+                </a>
             </div>
         </div>
     </section>

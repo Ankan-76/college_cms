@@ -5,6 +5,8 @@ require_once __DIR__ . '/../../includes/auth_middleware.php';
 require_once __DIR__ . '/../../controllers/LeaveController.php';
 
 require_role('ADMIN');
+require_once __DIR__ . '/../../includes/permission_middleware.php';
+require_permission('leave_requests');
 $pageTitle = 'Leave Request Details | Admin Portal';
 
 use Controllers\LeaveController;

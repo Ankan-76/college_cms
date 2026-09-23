@@ -4,6 +4,8 @@ require_once __DIR__ . '/../../config/app.php';
 require_once __DIR__ . '/../../includes/auth_middleware.php';
 
 require_role('ADMIN');
+require_once __DIR__ . '/../../includes/permission_middleware.php';
+require_permission('feedbacks');
 $pageTitle = 'Feedback Submissions | Admin Portal';
 
 require_once __DIR__ . '/../../includes/header.php';
@@ -244,7 +246,7 @@ $base = defined('BASE_URL') ? BASE_URL : '/college_cms';
 
                                     $encodedFb = htmlspecialchars(json_encode($fb), ENT_QUOTES, 'UTF-8');
                                 ?>
-                                <tr class="hover:bg-slate-50/80 dark:hover:bg-slate-750/50 transition-colors group">
+                                <tr class="hover:bg-slate-50/70 dark:hover:bg-slate-700/40 transition-colors group">
                                     
                                     <!-- Submitter Column -->
                                     <td class="px-5 py-4">

@@ -4,6 +4,8 @@ require_once __DIR__ . '/../../config/app.php';
 require_once __DIR__ . '/../../includes/auth_middleware.php';
 
 require_role('ADMIN');
+require_once __DIR__ . '/../../includes/permission_middleware.php';
+require_permission('leave_requests');
 $pageTitle = 'Leave Requests | Admin Portal';
 
 require_once __DIR__ . '/../../includes/header.php';

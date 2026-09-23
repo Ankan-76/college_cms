@@ -25,16 +25,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'update_details') {
         $name = sanitize($_POST['name'] ?? '');
         $phone = sanitize($_POST['phone'] ?? '');
+        $email = sanitize($_POST['email'] ?? '');
+        $role = sanitize($_POST['role'] ?? '');
 
-        if (empty($name)) {
-            set_flash_message('Name cannot be empty.', 'error');
+        if (empty($name) || empty($email) || empty($role)) {
+            set_flash_message('Name, Email, and Role cannot be empty.', 'error');
+        } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            set_flash_message('Invalid email format.', 'error');
         } else {
-            $stmt = $db->prepare("UPDATE admins SET name = ?, phone = ? WHERE id = ?");
-            if ($stmt->execute([$name, $phone, $userId])) {
-                $_SESSION['name'] = $name;
-                set_flash_message('Profile details updated successfully.', 'success');
+            $stmt = $db->prepare("SELECT id FROM admins WHERE email = ? AND id != ?");
+            $stmt->execute([$email, $userId]);
+            if ($stmt->fetch()) {
+                set_flash_message('Email is already taken by another admin.', 'error');
             } else {
-                set_flash_message('Failed to update details.', 'error');
+                $stmt = $db->prepare("UPDATE admins SET name = ?, role = ?, email = ?, phone = ? WHERE id = ?");
+                if ($stmt->execute([$name, $role, $email, $phone, $userId])) {
+                    $_SESSION['name'] = $name;
+                    set_flash_message('Profile details updated successfully.', 'success');
+                } else {
+                    set_flash_message('Failed to update details.', 'error');
+                }
             }
         }
         redirect('/views/admin/edit-profile.php');
@@ -119,7 +129,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Fetch user details for display
-$stmt = $db->prepare("SELECT name, email, phone, status, created_at, profile_pic FROM admins WHERE id = ?");
+$stmt = $db->prepare("SELECT name, role, email, phone, status, created_at, profile_pic FROM admins WHERE id = ?");
 $stmt->execute([$userId]);
 $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -165,7 +175,7 @@ require_once __DIR__ . '/../../includes/header.php';
                         <?php endif; ?>
                     </div>
                     <h2 class="text-xl font-bold text-slate-800 dark:text-white"><?= htmlspecialchars($user['name']) ?></h2>
-                    <p class="text-indigo-600 dark:text-indigo-400 font-medium text-sm mb-4">ADMIN</p>
+                    <p class="text-indigo-600 dark:text-indigo-400 font-medium text-sm mb-4"><?= htmlspecialchars($user['role'] ?? 'ADMIN') ?></p>
                     
                     <form action="<?= BASE_URL ?>/views/admin/edit-profile.php" method="POST" enctype="multipart/form-data" class="mt-4">
                         <input type="hidden" name="csrf_token" value="<?= generate_csrf_token() ?>">
@@ -203,6 +213,17 @@ require_once __DIR__ . '/../../includes/header.php';
                             <div>
                                 <label for="name" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Full Name <span class="text-rose-500">*</span></label>
                                 <input type="text" id="name" name="name" value="<?= htmlspecialchars($user['name']) ?>" required class="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors text-slate-900 dark:text-slate-100">
+                            </div>
+                            <div>
+                                <label for="role" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Role <span class="text-rose-500">*</span></label>
+                                <select id="role" name="role" required class="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors text-slate-900 dark:text-slate-100">
+                                    <option value="SUPER ADMIN" <?= ($user['role'] ?? '') === 'SUPER ADMIN' ? 'selected' : '' ?>>Super Admin</option>
+                                    <option value="ADMIN" <?= ($user['role'] ?? '') === 'ADMIN' ? 'selected' : '' ?>>Admin</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="email" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Email Address <span class="text-rose-500">*</span></label>
+                                <input type="email" id="email" name="email" value="<?= htmlspecialchars($user['email'] ?? '') ?>" required class="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors text-slate-900 dark:text-slate-100">
                             </div>
                             <div>
                                 <label for="phone" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Phone Number</label>

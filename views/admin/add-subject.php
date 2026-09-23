@@ -1,10 +1,12 @@
-﻿<?php
+<?php
 // views/admin/add-subject.php
 require_once __DIR__ . '/../../config/app.php';
 require_once __DIR__ . '/../../includes/auth_middleware.php';
 require_once __DIR__ . '/../../config/database.php';
 
 require_role('ADMIN');
+require_once __DIR__ . '/../../includes/permission_middleware.php';
+require_permission('subjects');
 $pageTitle = 'Add Subject | College Management System';
 
 use Config\Database;

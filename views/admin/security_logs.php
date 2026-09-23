@@ -1,16 +1,15 @@
 <?php
 // views/admin/security_logs.php
 $pageTitle = 'Network Surveillance Matrix';
+require_once __DIR__ . '/../../config/app.php';
+require_once __DIR__ . '/../../includes/auth_middleware.php';
+require_once __DIR__ . '/../../includes/permission_middleware.php';
+require_role('ADMIN');
+require_permission('security_logs');
 require_once __DIR__ . '/../../includes/header.php';
 require_once __DIR__ . '/../../config/database.php';
 use Config\Database;
 
-// Ensure only ADMIN can access this
-if (($_SESSION['role_name'] ?? '') !== 'ADMIN') {
-    require_once __DIR__ . '/../../includes/helpers.php';
-    set_flash_message('Unauthorized Access.', 'error');
-    redirect('/');
-}
 
 $db = Database::getInstance()->getConnection();
 $stmt = $db->query("

@@ -54,22 +54,22 @@ if ($role === 'ADMIN') {
 } else {
     // Landing page / Guest
     $quick_links = [
-        ['label' => 'Home', 'url' => $base_url . '/#home'],
-        ['label' => 'About', 'url' => $base_url . '/#about'],
-        ['label' => 'Portals', 'url' => $base_url . '/#portals'],
-        ['label' => 'Feedback', 'url' => $base_url . '/feedback.php'],
-        ['label' => 'Contact', 'url' => $base_url . '/#contact'],
+        ['label' => 'Home', 'url' => '/'],
+        ['label' => 'About', 'url' => '/#about'],
+        ['label' => 'Portals', 'url' => '/views/auth/login.php'],
+        ['label' => 'Feedback', 'url' => '/feedback.php'],
+        ['label' => 'Contact', 'url' => '/#contact'],
     ];
     $more_links = [
-        ['label' => 'Student Portal', 'url' => $base_url . '/views/auth/student_login.php'],
-        ['label' => 'Faculty Portal', 'url' => $base_url . '/views/auth/faculty_login.php'],
-        ['label' => 'Admin Portal', 'url' => $base_url . '/views/auth/admin_login.php'],
-        ['label' => 'Submit Feedback', 'url' => $base_url . '/feedback.php'],
+        ['label' => 'Student Portal', 'url' => '/views/auth/student_login.php'],
+        ['label' => 'Faculty Portal', 'url' => '/views/auth/faculty_login.php'],
+        ['label' => 'Admin Portal', 'url' => '/views/auth/admin_login.php'],
+        ['label' => 'Submit Feedback', 'url' => '/feedback.php'],
     ];
 }
 ?>
 <!-- ═══════════ MAIN FOOTER ═══════════ -->
-<footer class="bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-950 text-slate-600 dark:text-slate-300 border-t border-slate-200 dark:border-slate-800 w-full mt-auto relative overflow-hidden">
+<footer class="bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-950 text-slate-600 dark:text-slate-300 border-t border-slate-200 dark:border-slate-800 w-full max-w-full mt-auto relative overflow-hidden">
     <!-- Decorative Glow -->
     <div class="absolute top-0 left-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
     <div class="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl pointer-events-none"></div>
@@ -93,7 +93,7 @@ if ($role === 'ADMIN') {
                 <ul class="space-y-4">
                     <?php foreach ($quick_links as $link): ?>
                         <li>
-                            <a href="<?= htmlspecialchars(str_replace($base_url.$base_url, $base_url, $base_url . $link['url'])) ?>" class="text-sm text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all duration-300 hover:translate-x-1 inline-flex items-center gap-2 group">
+                            <a href="<?= htmlspecialchars($base_url . $link['url']) ?>" class="text-sm text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all duration-300 hover:translate-x-1 inline-flex items-center gap-2 group">
                                 <i data-lucide="chevron-right" class="w-3 h-3 opacity-0 -ml-5 group-hover:opacity-100 group-hover:ml-0 transition-all duration-300"></i>
                                 <?= htmlspecialchars($link['label']) ?>
                             </a>
@@ -108,7 +108,7 @@ if ($role === 'ADMIN') {
                 <ul class="space-y-4">
                     <?php foreach ($more_links as $link): ?>
                         <li>
-                            <a href="<?= htmlspecialchars(str_replace($base_url.$base_url, $base_url, $base_url . $link['url'])) ?>" class="text-sm text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all duration-300 hover:translate-x-1 inline-flex items-center gap-2 group">
+                            <a href="<?= htmlspecialchars($base_url . $link['url']) ?>" class="text-sm text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all duration-300 hover:translate-x-1 inline-flex items-center gap-2 group">
                                 <i data-lucide="chevron-right" class="w-3 h-3 opacity-0 -ml-5 group-hover:opacity-100 group-hover:ml-0 transition-all duration-300"></i>
                                 <?= htmlspecialchars($link['label']) ?>
                             </a>

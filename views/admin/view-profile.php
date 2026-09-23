@@ -13,7 +13,7 @@ $db = Database::getInstance()->getConnection();
 $userId = $_SESSION['user_id'];
 
 // Fetch user details for display
-$stmt = $db->prepare("SELECT name, email, phone, status, created_at, profile_pic FROM admins WHERE id = ?");
+$stmt = $db->prepare("SELECT name, role, email, phone, status, created_at, profile_pic FROM admins WHERE id = ?");
 $stmt->execute([$userId]);
 $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -81,7 +81,7 @@ require_once __DIR__ . '/../../includes/header.php';
                     
                     <div class="flex-1 text-center sm:text-left mb-2">
                         <h2 class="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-white"><?= htmlspecialchars($user['name']) ?></h2>
-                        <p class="text-indigo-600 dark:text-indigo-400 font-medium tracking-wide mt-1">ADMINISTRATOR</p>
+                        <p class="text-indigo-600 dark:text-indigo-400 font-medium tracking-wide mt-1"><?= htmlspecialchars($user['role'] ?? 'ADMINISTRATOR') ?></p>
                     </div>
                 </div>
 

@@ -6,7 +6,10 @@ require_once __DIR__ . '/../../includes/csrf.php';
 require_once __DIR__ . '/../../config/database.php';
 
 require_role('ADMIN');
+require_once __DIR__ . '/../../includes/permission_middleware.php';
+require_permission('timetables');
 
+use Config\Database;
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
         die('CSRF token validation failed');
@@ -14,7 +17,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $id = filter_input(INPUT_POST, 'id', FILTER_VALIDATE_INT);
     if ($id) {
-        use Config\Database;
         $db = Database::getInstance()->getConnection();
         
         $stmt = $db->prepare("SELECT department_id, semester_id FROM timetables WHERE id = ?");

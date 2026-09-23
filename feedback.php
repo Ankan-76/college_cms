@@ -328,7 +328,7 @@ endif;
                 <div class="hidden md:flex items-center gap-8">
                     <a href="<?= $base ?>/#about" class="text-sm font-semibold text-slate-600 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 transition-colors">About</a>
                     <a href="<?= $base ?>/#programs" class="text-sm font-semibold text-slate-600 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 transition-colors">Programs</a>
-                    <a href="<?= $base ?>/#portals" class="text-sm font-semibold text-slate-600 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 transition-colors">Portals</a>
+                    <a href="<?= $base ?>/views/auth/login.php" class="text-sm font-semibold text-slate-600 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 transition-colors">Portals</a>
                     <a href="<?= $base ?>/feedback.php" class="text-sm font-semibold text-indigo-600 dark:text-indigo-400 transition-colors">Feedback</a>
                     <a href="<?= $base ?>/#contact" class="text-sm font-semibold text-slate-600 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 transition-colors">Contact</a>
                 </div>
@@ -338,7 +338,7 @@ endif;
                         <i id="theme-toggle-dark-icon" data-lucide="moon" class="hidden w-5 h-5"></i>
                         <i id="theme-toggle-light-icon" data-lucide="sun" class="hidden w-5 h-5 text-yellow-500"></i>
                     </button>
-                    <a href="<?= $base ?>/#portals" class="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 hover:-translate-y-0.5">
+                    <a href="<?= $base ?>/views/auth/login.php" class="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 hover:-translate-y-0.5">
                         <i data-lucide="log-in" class="w-4 h-4"></i> Sign In
                     </a>
                 </div>

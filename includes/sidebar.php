@@ -4,42 +4,75 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+require_once __DIR__ . '/permission_middleware.php';
+
 $role = $_SESSION['role_name'] ?? 'GUEST';
 $links = [];
 
 if ($role === 'ADMIN') {
-    $links = [
-        // Main
-        ['url' => '/views/admin/dashboard.php', 'icon' => 'layout-dashboard', 'label' => 'Dashboard'],
+    // RBAC: Build sidebar dynamically from modules table based on permissions
+    try {
+        $sidebarDb = \Config\Database::getInstance()->getConnection();
+        $modulesStmt = $sidebarDb->query("SELECT module_key, module_name, module_group, icon, url FROM modules ORDER BY sort_order ASC");
+        $allModules = $modulesStmt->fetchAll(PDO::FETCH_ASSOC);
         
-        // Users
-        ['is_header' => true, 'label' => 'USERS'],
-        ['url' => '/views/admin/students.php', 'icon' => 'graduation-cap', 'label' => 'Students'],
-        ['url' => '/views/admin/faculty.php', 'icon' => 'users', 'label' => 'Faculty'],
+        $currentGroup = null;
+        $securityLogsLink = null;
         
-        // Academics
-        ['is_header' => true, 'label' => 'ACADEMICS'],
-        ['url' => '/views/admin/departments.php', 'icon' => 'building-2', 'label' => 'Departments'],
-        ['url' => '/views/admin/semesters.php', 'icon' => 'calendar-days', 'label' => 'Semesters'],
-        ['url' => '/views/admin/subjects.php', 'icon' => 'book-open', 'label' => 'Subject'],
-        ['url' => '/views/admin/subject_assignments.php', 'icon' => 'clipboard-list', 'label' => 'Assignments'],
-        ['url' => '/views/admin/timetables.php', 'icon' => 'calendar', 'label' => 'Timetables'],
+        foreach ($allModules as $mod) {
+            // Check if this admin has permission for this module
+            if (!has_permission($mod['module_key'])) {
+                continue;
+            }
+            
+            // Special handling for Security Logs to move it to the bottom
+            if ($mod['module_key'] === 'security_logs') {
+                $securityLogsLink = [
+                    'url' => $mod['url'],
+                    'icon' => $mod['icon'],
+                    'label' => $mod['module_name'],
+                    'class' => 'text-rose-600 dark:text-rose-400 bg-rose-50/50 dark:bg-rose-900/10 hover:bg-rose-100 dark:hover:bg-rose-900/30'
+                ];
+                continue;
+            }
+            
+            // Insert section header if group changed
+            if ($mod['module_group'] !== $currentGroup) {
+                // Don't add a header for the MAIN group (Dashboard sits alone at top)
+                if ($mod['module_group'] !== 'MAIN') {
+                    $links[] = ['is_header' => true, 'label' => $mod['module_group']];
+                }
+                $currentGroup = $mod['module_group'];
+            }
+            
+            $linkEntry = [
+                'url' => $mod['url'],
+                'icon' => $mod['icon'],
+                'label' => $mod['module_name']
+            ];
+            
+            $links[] = $linkEntry;
+        }
         
-        // Communication
-        ['is_header' => true, 'label' => 'COMMUNICATION'],
-        ['url' => '/views/admin/broadcasts.php', 'icon' => 'radio', 'label' => 'Broadcasts'],
-        ['url' => '/views/admin/notices.php', 'icon' => 'bell', 'label' => 'Notices'],
-        ['url' => '/views/admin/leave_requests.php', 'icon' => 'calendar-off', 'label' => 'Leave Requests'],
-        ['url' => '/views/admin/view-feedback.php', 'icon' => 'message-square-heart', 'label' => 'Feedbacks'],
+        // Account section — always visible for all admins (not a permissioned module)
+        $links[] = ['is_header' => true, 'label' => 'ACCOUNT'];
+        $links[] = ['url' => '/views/admin/view-profile.php', 'icon' => 'user-circle', 'label' => 'My Profile'];
         
-        // Account
-        ['is_header' => true, 'label' => 'ACCOUNT'],
-        ['url' => '/views/admin/view-profile.php', 'icon' => 'user-circle', 'label' => 'My Profile'],
+        // Append Security Logs at the bottom (if permitted) under its own heading
+        if ($securityLogsLink) {
+            $links[] = ['is_header' => true, 'label' => 'SYSTEMS MATRIX'];
+            $links[] = $securityLogsLink;
+        }
         
-        // Systems Matrix
-        ['is_header' => true, 'label' => 'SYSTEMS MATRIX'],
-        ['url' => '/views/admin/security_logs.php', 'icon' => 'fingerprint', 'label' => 'Security Logs', 'class' => 'text-rose-600 dark:text-rose-400 bg-rose-50/50 dark:bg-rose-900/10 hover:bg-rose-100 dark:hover:bg-rose-900/30'],
-    ];
+    } catch (\Exception $e) {
+        error_log("Sidebar module load error: " . $e->getMessage());
+        // Fallback: show minimal sidebar if DB fails
+        $links = [
+            ['url' => '/views/admin/dashboard.php', 'icon' => 'layout-dashboard', 'label' => 'Dashboard'],
+            ['is_header' => true, 'label' => 'ACCOUNT'],
+            ['url' => '/views/admin/view-profile.php', 'icon' => 'user-circle', 'label' => 'My Profile'],
+        ];
+    }
 } elseif ($role === 'FACULTY') {
     $links = [
         // Main

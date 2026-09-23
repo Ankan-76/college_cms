@@ -5,6 +5,8 @@ require_once __DIR__ . '/../../includes/auth_middleware.php';
 require_once __DIR__ . '/../../controllers/MessageController.php';
 
 require_role('ADMIN');
+require_once __DIR__ . '/../../includes/permission_middleware.php';
+require_permission('broadcasts');
 $pageTitle = 'Broadcast Messages | Admin Portal';
 
 require_once __DIR__ . '/../../includes/header.php';

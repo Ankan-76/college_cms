@@ -26,9 +26,6 @@ class FeedbackController {
      */
     public function submitFeedback(array $data): bool {
         try {
-            $name = trim($data['name'] ?? '');
-            $email = trim($data['email'] ?? '');
-            $phone = !empty($data['phone']) ? trim($data['phone']) : null;
             $userRole = strtoupper(trim($data['user_role'] ?? 'GUEST'));
             $userId = !empty($data['user_id']) ? (int)$data['user_id'] : null;
             $category = trim($data['category'] ?? 'General');
@@ -36,15 +33,35 @@ class FeedbackController {
             $rating = !empty($data['rating']) ? (int)$data['rating'] : null;
             $message = trim($data['message'] ?? '');
 
-            // Validations
-            if (empty($name)) {
-                set_flash_message('Please provide your name.', 'error');
-                return false;
+            $allowedRoles = ['STUDENT', 'FACULTY', 'ADMIN', 'GUEST'];
+            if (!in_array($userRole, $allowedRoles)) {
+                $userRole = 'GUEST';
             }
 
-            if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                set_flash_message('Please provide a valid email address.', 'error');
-                return false;
+            // Name, email, phone handling based on role
+            if ($userRole === 'GUEST') {
+                $name = trim($data['name'] ?? '');
+                $email = trim($data['email'] ?? '');
+                $phone = !empty($data['phone']) ? trim($data['phone']) : null;
+
+                if (empty($name)) {
+                    set_flash_message('Please provide your name.', 'error');
+                    return false;
+                }
+
+                if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                    set_flash_message('Please provide a valid email address.', 'error');
+                    return false;
+                }
+            } else {
+                // Authenticated student/faculty/admin: identity is linked via user_id & user_role
+                if (empty($userId)) {
+                    set_flash_message('Authentication required to submit institutional feedback.', 'error');
+                    return false;
+                }
+                $name = null;
+                $email = null;
+                $phone = null;
             }
 
             if (empty($subject)) {
@@ -59,11 +76,6 @@ class FeedbackController {
 
             if ($rating !== null && ($rating < 1 || $rating > 5)) {
                 $rating = null;
-            }
-
-            $allowedRoles = ['STUDENT', 'FACULTY', 'ADMIN', 'GUEST'];
-            if (!in_array($userRole, $allowedRoles)) {
-                $userRole = 'GUEST';
             }
 
             // Capture IP and User Agent
@@ -125,39 +137,87 @@ class FeedbackController {
         ?int $ratingFilter = null
     ): array {
         try {
-            $sql = "SELECT * FROM feedbacks WHERE 1=1";
+            $sql = "
+                SELECT 
+                    f.*,
+                    COALESCE(
+                        CASE 
+                            WHEN f.user_role = 'STUDENT' THEN s.name
+                            WHEN f.user_role = 'FACULTY' THEN t.name
+                            WHEN f.user_role = 'ADMIN' THEN a.name
+                        END,
+                        f.name
+                    ) AS name,
+                    COALESCE(
+                        CASE 
+                            WHEN f.user_role = 'STUDENT' THEN s.email
+                            WHEN f.user_role = 'FACULTY' THEN t.email
+                            WHEN f.user_role = 'ADMIN' THEN a.email
+                        END,
+                        f.email
+                    ) AS email,
+                    COALESCE(
+                        CASE 
+                            WHEN f.user_role = 'STUDENT' THEN s.phone
+                            WHEN f.user_role = 'FACULTY' THEN t.phone
+                            WHEN f.user_role = 'ADMIN' THEN a.phone
+                        END,
+                        f.phone
+                    ) AS phone,
+                    CASE 
+                        WHEN f.user_role = 'STUDENT' THEN s.roll_number
+                        ELSE NULL
+                    END AS student_roll,
+                    CASE 
+                        WHEN f.user_role = 'FACULTY' THEN t.designation
+                        ELSE NULL
+                    END AS faculty_designation
+                FROM feedbacks f
+                LEFT JOIN students s ON f.user_id = s.id AND f.user_role = 'STUDENT'
+                LEFT JOIN teachers t ON f.user_id = t.id AND f.user_role = 'FACULTY'
+                LEFT JOIN admins a ON f.user_id = a.id AND f.user_role = 'ADMIN'
+                WHERE 1=1
+            ";
             $params = [];
 
             if (!empty($roleFilter) && $roleFilter !== 'ALL') {
-                $sql .= " AND user_role = ?";
+                $sql .= " AND f.user_role = ?";
                 $params[] = strtoupper($roleFilter);
             }
 
             if (!empty($statusFilter) && $statusFilter !== 'ALL') {
-                $sql .= " AND status = ?";
+                $sql .= " AND f.status = ?";
                 $params[] = strtoupper($statusFilter);
             }
 
             if (!empty($categoryFilter) && $categoryFilter !== 'ALL') {
-                $sql .= " AND category = ?";
+                $sql .= " AND f.category = ?";
                 $params[] = $categoryFilter;
             }
 
             if (!empty($ratingFilter) && $ratingFilter > 0) {
-                $sql .= " AND rating = ?";
+                $sql .= " AND f.rating = ?";
                 $params[] = $ratingFilter;
             }
 
             if (!empty($search)) {
-                $sql .= " AND (name LIKE ? OR email LIKE ? OR subject LIKE ? OR message LIKE ?)";
+                $sql .= " AND (
+                    f.name LIKE ? OR f.email LIKE ? OR f.subject LIKE ? OR f.message LIKE ? 
+                    OR s.name LIKE ? OR s.email LIKE ? 
+                    OR t.name LIKE ? OR t.email LIKE ?
+                )";
                 $searchTerm = "%{$search}%";
                 $params[] = $searchTerm;
                 $params[] = $searchTerm;
                 $params[] = $searchTerm;
                 $params[] = $searchTerm;
+                $params[] = $searchTerm;
+                $params[] = $searchTerm;
+                $params[] = $searchTerm;
+                $params[] = $searchTerm;
             }
 
-            $sql .= " ORDER BY created_at DESC";
+            $sql .= " ORDER BY f.created_at DESC";
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute($params);
@@ -222,7 +282,47 @@ class FeedbackController {
      */
     public function getFeedbackById(int $id): ?array {
         try {
-            $stmt = $this->db->prepare("SELECT * FROM feedbacks WHERE id = ?");
+            $stmt = $this->db->prepare("
+                SELECT 
+                    f.*,
+                    COALESCE(
+                        CASE 
+                            WHEN f.user_role = 'STUDENT' THEN s.name
+                            WHEN f.user_role = 'FACULTY' THEN t.name
+                            WHEN f.user_role = 'ADMIN' THEN a.name
+                        END,
+                        f.name
+                    ) AS name,
+                    COALESCE(
+                        CASE 
+                            WHEN f.user_role = 'STUDENT' THEN s.email
+                            WHEN f.user_role = 'FACULTY' THEN t.email
+                            WHEN f.user_role = 'ADMIN' THEN a.email
+                        END,
+                        f.email
+                    ) AS email,
+                    COALESCE(
+                        CASE 
+                            WHEN f.user_role = 'STUDENT' THEN s.phone
+                            WHEN f.user_role = 'FACULTY' THEN t.phone
+                            WHEN f.user_role = 'ADMIN' THEN a.phone
+                        END,
+                        f.phone
+                    ) AS phone,
+                    CASE 
+                        WHEN f.user_role = 'STUDENT' THEN s.roll_number
+                        ELSE NULL
+                    END AS student_roll,
+                    CASE 
+                        WHEN f.user_role = 'FACULTY' THEN t.designation
+                        ELSE NULL
+                    END AS faculty_designation
+                FROM feedbacks f
+                LEFT JOIN students s ON f.user_id = s.id AND f.user_role = 'STUDENT'
+                LEFT JOIN teachers t ON f.user_id = t.id AND f.user_role = 'FACULTY'
+                LEFT JOIN admins a ON f.user_id = a.id AND f.user_role = 'ADMIN'
+                WHERE f.id = ?
+            ");
             $stmt->execute([$id]);
             $res = $stmt->fetch(PDO::FETCH_ASSOC);
             return $res ?: null;
@@ -290,6 +390,62 @@ class FeedbackController {
             return false;
         } catch (Exception $e) {
             error_log('Error deleting feedback: ' . $e->getMessage());
+            set_flash_message('An error occurred while deleting feedback.', 'error');
+            return false;
+        }
+    }
+
+    /**
+     * Retrieve feedbacks submitted by a specific student or faculty member
+     *
+     * @param int $userId
+     * @param string $userRole
+     * @param string|null $statusFilter
+     * @return array
+     */
+    public function getUserFeedbacks(int $userId, string $userRole, ?string $statusFilter = null): array {
+        try {
+            $sql = "SELECT * FROM feedbacks WHERE user_id = ? AND user_role = ?";
+            $params = [$userId, strtoupper($userRole)];
+
+            if (!empty($statusFilter) && $statusFilter !== 'ALL') {
+                $sql .= " AND status = ?";
+                $params[] = strtoupper($statusFilter);
+            }
+
+            $sql .= " ORDER BY created_at DESC";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            error_log('Error retrieving user feedbacks: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Delete a feedback record owned by a specific student or faculty member
+     *
+     * @param int $feedbackId
+     * @param int $userId
+     * @param string $userRole
+     * @return bool
+     */
+    public function deleteUserFeedback(int $feedbackId, int $userId, string $userRole): bool {
+        try {
+            $stmt = $this->db->prepare("DELETE FROM feedbacks WHERE id = ? AND user_id = ? AND user_role = ?");
+            $res = $stmt->execute([$feedbackId, $userId, strtoupper($userRole)]);
+
+            if ($res && $stmt->rowCount() > 0) {
+                set_flash_message('Your feedback submission has been deleted.', 'success');
+                return true;
+            }
+
+            set_flash_message('Failed to delete feedback or unauthorized.', 'error');
+            return false;
+        } catch (Exception $e) {
+            error_log('Error deleting user feedback: ' . $e->getMessage());
             set_flash_message('An error occurred while deleting feedback.', 'error');
             return false;
         }

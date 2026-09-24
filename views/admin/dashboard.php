@@ -54,9 +54,26 @@ $recentInquiries = $recentInquiriesQuery->fetchAll(PDO::FETCH_ASSOC);
 
 // Fetch Recent Feedbacks
 $recentFeedbacksQuery = $db->query("
-    SELECT id, name, user_role, subject, rating, status, created_at
-    FROM feedbacks
-    ORDER BY id DESC LIMIT 5
+    SELECT 
+        f.id, 
+        COALESCE(
+            CASE 
+                WHEN f.user_role = 'STUDENT' THEN s.name
+                WHEN f.user_role = 'FACULTY' THEN t.name
+                WHEN f.user_role = 'ADMIN' THEN a.name
+            END, 
+            f.name
+        ) AS name, 
+        f.user_role, 
+        f.subject, 
+        f.rating, 
+        f.status, 
+        f.created_at
+    FROM feedbacks f
+    LEFT JOIN students s ON f.user_id = s.id AND f.user_role = 'STUDENT'
+    LEFT JOIN teachers t ON f.user_id = t.id AND f.user_role = 'FACULTY'
+    LEFT JOIN admins a ON f.user_id = a.id AND f.user_role = 'ADMIN'
+    ORDER BY f.id DESC LIMIT 5
 ");
 $recentFeedbacks = $recentFeedbacksQuery->fetchAll(PDO::FETCH_ASSOC);
 

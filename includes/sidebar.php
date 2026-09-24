@@ -99,7 +99,8 @@ if ($role === 'ADMIN') {
         ['url' => '/views/faculty/apply_leave.php', 'icon' => 'calendar-off', 'label' => 'Apply Leave'],
         ['url' => '/views/faculty/my_leaves.php', 'icon' => 'calendar-check', 'label' => 'My Leaves'],
         ['url' => '/views/faculty/messages.php', 'icon' => 'message-circle', 'label' => 'Messages'],
-        ['url' => '/feedback.php', 'icon' => 'message-square-heart', 'label' => 'Feedback'],
+        ['url' => '/feedback.php', 'icon' => 'message-square-heart', 'label' => 'Give Feedback'],
+        ['url' => '/views/faculty/my_feedbacks.php', 'icon' => 'message-square-text', 'label' => 'My Feedbacks'],
         
         // Account
         ['is_header' => true, 'label' => 'ACCOUNT'],
@@ -129,7 +130,8 @@ if ($role === 'ADMIN') {
         ['url' => '/views/student/apply_leave.php', 'icon' => 'calendar-off', 'label' => 'Apply Leave'],
         ['url' => '/views/student/my_leaves.php', 'icon' => 'calendar-check', 'label' => 'My Leaves'],
         ['url' => '/views/student/messages.php', 'icon' => 'message-circle', 'label' => 'Messages'],
-        ['url' => '/feedback.php', 'icon' => 'message-square-heart', 'label' => 'Feedback'],
+        ['url' => '/feedback.php', 'icon' => 'message-square-heart', 'label' => 'Give Feedback'],
+        ['url' => '/views/student/my_feedbacks.php', 'icon' => 'message-square-text', 'label' => 'My Feedbacks'],
         
         // Account
         ['is_header' => true, 'label' => 'ACCOUNT'],

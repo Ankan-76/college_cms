@@ -31,20 +31,28 @@ if ($action === 'submit' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $userRole = strtoupper($_SESSION['role_name']);
     }
 
-    $name = sanitize($_POST['name'] ?? '');
-    $email = sanitize($_POST['email'] ?? '');
-    $phone = sanitize($_POST['phone'] ?? '');
     $category = sanitize($_POST['category'] ?? 'General');
     $subject = sanitize($_POST['subject'] ?? '');
     $rating = !empty($_POST['rating']) ? (int)$_POST['rating'] : null;
     $message = trim($_POST['message'] ?? '');
 
-    // Allow user to indicate their role if guest, e.g., Visitor, Parent, Alumni
-    if ($userRole === 'GUEST' && !empty($_POST['role_affinity'])) {
-        $roleAffinity = sanitize($_POST['role_affinity']);
-        if ($roleAffinity !== 'GUEST') {
-            $category = $category . ' (' . $roleAffinity . ')';
+    if ($userRole === 'GUEST') {
+        $name = sanitize($_POST['name'] ?? '');
+        $email = sanitize($_POST['email'] ?? '');
+        $phone = sanitize($_POST['phone'] ?? '');
+
+        // Allow user to indicate their role if guest, e.g., Visitor, Parent, Alumni
+        if (!empty($_POST['role_affinity'])) {
+            $roleAffinity = sanitize($_POST['role_affinity']);
+            if ($roleAffinity !== 'GUEST') {
+                $category = $category . ' (' . $roleAffinity . ')';
+            }
         }
+    } else {
+        // For authenticated student, faculty, or admin, their profile info is already in the database
+        $name = null;
+        $email = null;
+        $phone = null;
     }
 
     $data = [
@@ -100,6 +108,38 @@ if ($action === 'submit' && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $controller->deleteFeedback($id);
     redirect('/views/admin/view-feedback.php');
+
+// ── Action: Delete My Feedback (Student & Faculty) ───────────
+} elseif ($action === 'delete_my_feedback' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!isset($_SESSION['user_id']) || empty($_SESSION['role_name'])) {
+        set_flash_message('Unauthorized access. Please log in.', 'error');
+        redirect('/views/auth/login.php');
+    }
+
+    $userRole = strtoupper($_SESSION['role_name']);
+    $allowedRoles = ['STUDENT', 'FACULTY'];
+    if (!in_array($userRole, $allowedRoles)) {
+        set_flash_message('Unauthorized operation.', 'error');
+        redirect('/feedback.php');
+    }
+
+    $redirectUrl = $userRole === 'STUDENT' ? '/views/student/my_feedbacks.php' : '/views/faculty/my_feedbacks.php';
+
+    if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+        set_flash_message('Action failed: Invalid CSRF token.', 'error');
+        redirect($redirectUrl);
+    }
+
+    $id = (int)($_POST['id'] ?? 0);
+    $userId = (int)$_SESSION['user_id'];
+
+    if ($id <= 0) {
+        set_flash_message('Invalid feedback ID.', 'error');
+        redirect($redirectUrl);
+    }
+
+    $controller->deleteUserFeedback($id, $userId, $userRole);
+    redirect($redirectUrl);
 
 } else {
     redirect('/feedback.php');

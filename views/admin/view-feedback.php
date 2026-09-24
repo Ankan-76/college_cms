@@ -252,15 +252,15 @@ $base = defined('BASE_URL') ? BASE_URL : '/college_cms';
                                     <td class="px-5 py-4">
                                         <div class="flex items-center gap-3">
                                             <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 text-indigo-600 dark:text-indigo-400 font-black flex items-center justify-center flex-shrink-0 text-xs border border-indigo-200/50 dark:border-indigo-800/30">
-                                                <?= strtoupper(substr($fb['name'], 0, 1)) ?>
+                                                <?= strtoupper(substr($fb['name'] ?? 'U', 0, 1)) ?>
                                             </div>
                                             <div>
                                                 <div class="font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                                                    <?= htmlspecialchars($fb['name']) ?>
+                                                    <?= htmlspecialchars($fb['name'] ?? 'Anonymous') ?>
                                                     <?= $roleBadge ?>
                                                 </div>
                                                 <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                                                    <?= htmlspecialchars($fb['email']) ?>
+                                                    <?= htmlspecialchars($fb['email'] ?? 'No email on record') ?>
                                                     <?php if (!empty($fb['phone'])): ?>
                                                         • <?= htmlspecialchars($fb['phone']) ?>
                                                     <?php endif; ?>
@@ -460,8 +460,8 @@ function openFeedbackModal(fb) {
     document.getElementById('modalFeedbackId').value = fb.id;
     document.getElementById('modalSubject').textContent = fb.subject;
     document.getElementById('modalDate').textContent = 'Submitted on ' + new Date(fb.created_at).toLocaleString();
-    document.getElementById('modalName').textContent = fb.name;
-    document.getElementById('modalEmail').textContent = fb.email;
+    document.getElementById('modalName').textContent = fb.name || 'Anonymous';
+    document.getElementById('modalEmail').textContent = fb.email || 'N/A';
     document.getElementById('modalPhone').textContent = fb.phone || 'N/A';
     document.getElementById('modalCategory').textContent = fb.category;
     document.getElementById('modalMessage').textContent = fb.message;

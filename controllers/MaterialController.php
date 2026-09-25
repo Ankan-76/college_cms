@@ -26,7 +26,7 @@ class MaterialController {
             $stmt = $this->db->prepare("
                 SELECT m.*, f.name as faculty_name 
                 FROM study_materials m
-                JOIN faculty_profiles f ON m.faculty_id = f.id
+                JOIN teachers f ON m.faculty_id = f.id
                 WHERE m.course_id = ?
                 ORDER BY m.uploaded_at DESC
             ");
@@ -115,6 +115,72 @@ class MaterialController {
         } catch (PDOException $e) {
             error_log("DB Error deleting material: " . $e->getMessage());
             return ['success' => false, 'message' => 'Database error during deletion.'];
+        }
+    }
+
+    /**
+     * Update an existing study material.
+     */
+    public function updateMaterial(int $materialId, int $facultyId, int $courseId, string $title, ?array $newFile = null): array {
+        if ($materialId <= 0 || empty($title) || $courseId <= 0) {
+            return ['success' => false, 'message' => 'Please provide valid course and title.'];
+        }
+
+        try {
+            // Check ownership
+            $stmt = $this->db->prepare("SELECT file_path, file_size FROM study_materials WHERE id = ? AND faculty_id = ?");
+            $stmt->execute([$materialId, $facultyId]);
+            $existing = $stmt->fetch();
+
+            if (!$existing) {
+                return ['success' => false, 'message' => 'Study material not found or you do not have permission to edit it.'];
+            }
+
+            $filePath = $existing['file_path'];
+            $fileSize = (int)$existing['file_size'];
+
+            // Handle optional new file replacement
+            if ($newFile && !empty($newFile['name']) && $newFile['error'] === UPLOAD_ERR_OK) {
+                $uploadDir = __DIR__ . '/../uploads/materials/';
+                if (!is_dir($uploadDir)) {
+                    mkdir($uploadDir, 0755, true);
+                }
+
+                $fileExt = strtolower(pathinfo($newFile['name'], PATHINFO_EXTENSION));
+                $allowedExts = ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'txt', 'zip', 'rar'];
+                if (!in_array($fileExt, $allowedExts)) {
+                    return ['success' => false, 'message' => 'File type not allowed. Allowed formats: PDF, DOC, DOCX, PPT, PPTX, TXT, ZIP, RAR.'];
+                }
+
+                $newFileName = uniqid('mat_') . '_' . time() . '.' . $fileExt;
+                $destination = $uploadDir . $newFileName;
+                $newDbFilePath = 'uploads/materials/' . $newFileName;
+
+                if (move_uploaded_file($newFile['tmp_name'], $destination)) {
+                    // Delete old file if exists
+                    $oldAbsolutePath = __DIR__ . '/../' . $existing['file_path'];
+                    if (file_exists($oldAbsolutePath)) {
+                        unlink($oldAbsolutePath);
+                    }
+                    $filePath = $newDbFilePath;
+                    $fileSize = (int)$newFile['size'];
+                } else {
+                    return ['success' => false, 'message' => 'Failed to upload replacement file.'];
+                }
+            }
+
+            // Update database record
+            $updateStmt = $this->db->prepare("
+                UPDATE study_materials 
+                SET course_id = ?, title = ?, file_path = ?, file_size = ?
+                WHERE id = ? AND faculty_id = ?
+            ");
+            $updateStmt->execute([$courseId, $title, $filePath, $fileSize, $materialId, $facultyId]);
+
+            return ['success' => true, 'message' => 'Study material updated successfully.'];
+        } catch (PDOException $e) {
+            error_log("DB Error updating material: " . $e->getMessage());
+            return ['success' => false, 'message' => 'Database error while updating material.'];
         }
     }
 }

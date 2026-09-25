@@ -140,6 +140,81 @@ class AssignmentController {
     }
 
     /**
+     * Update an existing assignment (extend deadline, change marks, update details, etc.).
+     */
+    public function updateAssignment(
+        int $id,
+        int $facultyId,
+        string $title,
+        string $description,
+        int $maxMarks,
+        string $deadline,
+        int $allowLate = 1,
+        string $status = 'ACTIVE',
+        ?array $fileData = null
+    ): array {
+        if (empty($title) || $maxMarks <= 0 || empty($deadline)) {
+            return ['success' => false, 'message' => 'Title, max marks, and deadline are required.'];
+        }
+
+        try {
+            // Check ownership
+            $stmt = $this->db->prepare("SELECT * FROM assignments WHERE id = ? AND faculty_id = ?");
+            $stmt->execute([$id, $facultyId]);
+            $assignment = $stmt->fetch();
+
+            if (!$assignment) {
+                return ['success' => false, 'message' => 'Assignment not found or permission denied.'];
+            }
+
+            $refFilePath = $assignment['reference_file'];
+
+            // Handle optional replacement reference file upload
+            if ($fileData && !empty($fileData['name']) && $fileData['error'] === UPLOAD_ERR_OK) {
+                $uploadDir = __DIR__ . '/../uploads/assignments/references/';
+                if (!is_dir($uploadDir)) {
+                    mkdir($uploadDir, 0755, true);
+                }
+
+                $ext = strtolower(pathinfo($fileData['name'], PATHINFO_EXTENSION));
+                $allowedExts = ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'txt', 'zip', 'rar', 'jpg', 'png'];
+                if (!in_array($ext, $allowedExts)) {
+                    return ['success' => false, 'message' => 'Reference file type not allowed.'];
+                }
+
+                $newFileName = uniqid('ref_') . '_' . time() . '.' . $ext;
+                $destination = $uploadDir . $newFileName;
+
+                if (move_uploaded_file($fileData['tmp_name'], $destination)) {
+                    if (!empty($assignment['reference_file'])) {
+                        $oldPath = __DIR__ . '/../' . $assignment['reference_file'];
+                        if (file_exists($oldPath)) unlink($oldPath);
+                    }
+                    $refFilePath = 'uploads/assignments/references/' . $newFileName;
+                } else {
+                    return ['success' => false, 'message' => 'Failed to upload replacement reference file.'];
+                }
+            }
+
+            $statusVal = in_array($status, ['ACTIVE', 'CLOSED']) ? $status : 'ACTIVE';
+            $allowLateVal = $allowLate ? 1 : 0;
+            $cleanDeadline = date('Y-m-d H:i:s', strtotime($deadline));
+
+            $updateStmt = $this->db->prepare("
+                UPDATE assignments 
+                SET title = ?, description = ?, max_marks = ?, deadline = ?, allow_late = ?, status = ?, reference_file = ?
+                WHERE id = ? AND faculty_id = ?
+            ");
+            $updateStmt->execute([$title, $description, $maxMarks, $cleanDeadline, $allowLateVal, $statusVal, $refFilePath, $id, $facultyId]);
+
+            return ['success' => true, 'message' => 'Assignment updated successfully.'];
+        } catch (PDOException $e) {
+            error_log("DB Error updating assignment: " . $e->getMessage());
+            return ['success' => false, 'message' => 'Database error during update.'];
+        }
+    }
+
+    /**
      * Get all submissions for an assignment (faculty view).
      */
     public function getSubmissionsForAssignment(int $assignmentId, int $courseId): array {
@@ -248,21 +323,55 @@ class AssignmentController {
     }
 
     /**
-     * Faculty grades a submission.
+     * Faculty grades a submission or records grade for a student.
      */
-    public function gradeSubmission(int $submissionId, float $marks, string $feedback, int $gradedBy): array {
+    public function gradeSubmission(int $assignmentId, int $studentId, float $marks, string $feedback, int $gradedBy, int $submissionId = 0): array {
         try {
-            $stmt = $this->db->prepare("
-                UPDATE assignment_submissions 
-                SET marks_obtained = ?, feedback = ?, graded_at = NOW(), graded_by = ?
-                WHERE id = ?
-            ");
-            $stmt->execute([$marks, $feedback, $gradedBy, $submissionId]);
-
-            if ($stmt->rowCount() > 0) {
-                return ['success' => true, 'message' => 'Submission graded successfully.'];
+            // Verify assignment exists and max marks
+            $stmtAsg = $this->db->prepare("SELECT id, max_marks FROM assignments WHERE id = ?");
+            $stmtAsg->execute([$assignmentId]);
+            $assignment = $stmtAsg->fetch();
+            if (!$assignment) {
+                return ['success' => false, 'message' => 'Assignment not found.'];
             }
-            return ['success' => false, 'message' => 'Submission not found.'];
+
+            if ($marks < 0 || $marks > (float)$assignment['max_marks']) {
+                return ['success' => false, 'message' => 'Marks must be between 0 and ' . $assignment['max_marks'] . '.'];
+            }
+
+            // Check if submission record exists
+            $existing = null;
+            if ($submissionId > 0) {
+                $checkStmt = $this->db->prepare("SELECT id FROM assignment_submissions WHERE id = ?");
+                $checkStmt->execute([$submissionId]);
+                $existing = $checkStmt->fetch();
+            }
+            if (!$existing && $studentId > 0) {
+                $checkStmt = $this->db->prepare("SELECT id FROM assignment_submissions WHERE assignment_id = ? AND student_id = ?");
+                $checkStmt->execute([$assignmentId, $studentId]);
+                $existing = $checkStmt->fetch();
+            }
+
+            if ($existing) {
+                $stmt = $this->db->prepare("
+                    UPDATE assignment_submissions 
+                    SET marks_obtained = ?, feedback = ?, graded_at = NOW(), graded_by = ?
+                    WHERE id = ?
+                ");
+                $stmt->execute([$marks, $feedback, $gradedBy, $existing['id']]);
+            } else {
+                if ($studentId <= 0) {
+                    return ['success' => false, 'message' => 'Student ID is required to record grade.'];
+                }
+                $stmt = $this->db->prepare("
+                    INSERT INTO assignment_submissions 
+                    (assignment_id, student_id, file_path, file_size, file_name, is_late, marks_obtained, feedback, graded_at, graded_by)
+                    VALUES (?, ?, 'offline', 0, 'Offline / Manual Grade', 0, ?, ?, NOW(), ?)
+                ");
+                $stmt->execute([$assignmentId, $studentId, $marks, $feedback, $gradedBy]);
+            }
+
+            return ['success' => true, 'message' => 'Grade and feedback saved successfully.'];
         } catch (PDOException $e) {
             error_log("DB Error grading submission: " . $e->getMessage());
             return ['success' => false, 'message' => 'Database error during grading.'];
@@ -278,7 +387,7 @@ class AssignmentController {
                 SELECT a.*, c.course_code, c.course_name, fp.name as faculty_name
                 FROM assignments a
                 JOIN courses c ON a.course_id = c.id
-                LEFT JOIN faculty_profiles fp ON a.faculty_id = fp.id
+                LEFT JOIN teachers fp ON a.faculty_id = fp.id
                 WHERE c.department_id = ? AND c.semester_id = ?
                 ORDER BY a.deadline DESC
             ");

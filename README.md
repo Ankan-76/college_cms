@@ -38,7 +38,7 @@
 
 **GreenField College CMS (GFC CMS)** is an end-to-end, multi-tier College Management System and Academic ERP engineered to modernize administrative, educational, and operational workflows for higher education institutions.
 
-The application eliminates administrative friction by interconnecting four core institutional stakeholders: **Super Administrators / Sub-Admins**, **Faculty Members**, **Enrolled Students**, and **Prospective Applicants**. From student admission inquiries and department course structuring to real-time messaging, attendance tracking, timed online examinations, and dynamic grade books, GFC CMS delivers a unified, performant, and secure platform.
+The application eliminates administrative friction by interconnecting four core institutional stakeholders: **Super Administrators / Sub-Admins**, **Faculty Members**, **Enrolled Students**, and **Prospective Applicants**. From student admission inquiries and department course structuring to real-time messaging, attendance tracking, timed online examinations, in-browser study material previews, dynamic assignment lifecycle management with deadline extensions and grading, and mobile-first responsive dashboards, GFC CMS delivers a unified, performant, and secure platform.
 
 ---
 
@@ -106,8 +106,10 @@ graph TD
 | **Database** | **MariaDB 10.4+ / MySQL 8.0+** (InnoDB Engine) | Relational persistence, JSON-enabled schemas, ACID compliance |
 | **Database Abstraction** | **PHP Data Objects (PDO)** | Secure parameterized abstraction layer |
 | **Frontend Framework** | **HTML5, TailwindCSS, Vanilla JS** | Modern, responsive, utility-driven UI with Dark/Light theme mode |
+| **Responsive Architecture** | **Mobile-First CSS Grid & Flexbox** | Multi-device layout adapting seamlessly from 320px mobile viewports to desktop |
 | **Typography & Icons** | **Google Fonts (Inter)**, **Lucide Icons** | High-density interface iconography and accessible typography |
 | **Data Visualization** | **Chart.js** | Interactive graphical attendance, admissions, and grade distribution charts |
+| **Document Viewer** | **In-Browser Modal Viewer (`iframe`)** | Instant preview of PDFs, text files, and images without forced downloads |
 | **Document Processing** | **SheetJS (XLSX)**, **html2pdf.js** | Client-side export of student lists, rosters, and transcripts to Excel & PDF |
 | **Alerts & Modals** | **SweetAlert2** | Interactive toast notifications and operational confirmation modals |
 | **Email Protocol** | **PHPMailer (SMTP over TLS)** | Automated dispatch of 6-digit OTP codes for password recovery |
@@ -150,7 +152,7 @@ The Admin Portal provides institutional leadership and administrative personnel 
 ---
 
 ### 4.2 Faculty Portal & Modern Faculty Dashboard
-The Faculty Portal provides educators with an intuitive digital workstation to manage courses, students, attendance, instructional materials, and examinations.
+The Faculty Portal provides educators with an intuitive digital workstation to manage courses, students, attendance, instructional materials, assignments, and examinations.
 
 ```
 /views/faculty/
@@ -159,12 +161,12 @@ The Faculty Portal provides educators with an intuitive digital workstation to m
 ├── my_students.php             # Student roster for assigned courses
 ├── take_attendance.php         # Quick multi-student attendance marking
 ├── view_attendance.php         # Historical attendance registries & export
-├── assignments.php             # Coursework assignment creator & file attachments
-├── view_submissions.php        # Student submission grading, grading notes & status
+├── assignments.php             # Coursework creator, assignment editor (extend dates, marks) & file attachments
+├── view_submissions.php        # Comprehensive grading suite with modal evaluation & qualitative feedback
 ├── quizzes.php                 # Online examination & quiz builder
 ├── manage_quiz.php             # Question bank creation, point weighting & duration
 ├── quiz_results.php            # Automated attempt scores & submission breakdown
-├── study_materials.php         # Digital file repository for lecture notes & PDFs
+├── study_materials.php         # Digital file repository with in-browser document viewer & resource editor
 ├── messages.php                # Real-time chat with students & faculty peers
 ├── apply_leave.php             # Leave applications with file uploads
 └── timetable.php               # Personalized weekly teaching schedule
@@ -187,13 +189,18 @@ The Faculty Portal provides educators with an intuitive digital workstation to m
   - *Multi-Format Chart Export:* Client-side export dropdown enabling instant download to **PDF** (`html2pdf.js`) and **Excel** (`SheetJS XLSX`).
 - **Live Class Schedule (Timetable Tracker):** Today's lectures list with room number, start/end time chips, and 1-click "Take Attendance" shortcut.
 - **Campus Circulars & Administrative Notices:** Official announcements with pinned badges, publication dates, and author attribution.
-- **Coursework Deliverables & Resources:** Recently created assignments with submission counters and recent study material uploads with 1-click download actions.
+- **Coursework Deliverables & Resources:** Recently created assignments with submission counters and recent study material uploads with direct **View Online** and **Download** actions.
 
 #### Key Capabilities:
 - **Attendance Management:** Mark attendance daily with single-click status toggles (`PRESENT`, `ABSENT`, `LATE`) and instant attendance percentage computations.
-- **Assessment & Grading Suite:** Create assignments with strict deadlines and late-submission flags. Review uploaded student files, assign scores, and issue qualitative feedback.
+- **Assessment Lifecycle & Comprehensive Grading Suite:** 
+  - *Assignment Creation & Editing (`assignments.php`):* Instructors can author coursework with detailed instructions, attachments, maximum marks, and strict due dates. Existing assignments can be edited at any time to extend deadlines, adjust marks weighting, update instructions, switch between draft/published statuses, and replace attached reference files.
+  - *Submissions Evaluation Suite (`view_submissions.php`):* View all student submissions categorized by status (`All`, `Pending`, `Graded`, `Late`). Instructors can review submitted files online or download them, assign scores (with full zero-delta support for assigning 0 marks), and provide personalized qualitative feedback remarks.
 - **Online Quiz Engine:** Build timed quizzes with auto-scoring multiple-choice questions, shuffle logic, answer explanations, and automated grade posting.
-- **Course Material Distribution:** Upload syllabi, presentation decks, and supplementary materials with controlled student download permissions.
+- **Digital Study Materials & Edit Suite (`study_materials.php`):** 
+  - Upload syllabi, presentation decks, lecture notes, and reference documents.
+  - Integrated in-page **Document Viewer Modal** (`iframe`) and full-screen new-tab preview to inspect materials directly in the browser without forced downloads.
+  - Dedicated **Edit Study Material** modal allowing instructors to update titles, reassign course subjects, and replace files with automatic disk cleanup of orphaned documents.
 
 ---
 
@@ -204,17 +211,17 @@ The Student Portal empowers learners with self-service academic tracking, lectur
 /views/student/
 ├── dashboard.php               # Modernized academic control center with attendance intelligence & Chart.js analytics
 ├── my_subjects.php             # Enrolled courses, instructors, credit hours
-├── my_attendance.php           # Subject-wise attendance percentages & status log
+├── my_attendance.php           # Mobile-responsive attendance percentages & 2x2 summary metrics
 ├── my_timetable.php            # Visual weekly class schedule & room assignments
-├── my_grades.php               # Comprehensive grade book, assignment & quiz marks
-├── assignments.php             # Active assignments, deadlines & upload submission
-├── quizzes.php                 # Active & upcoming online examinations
+├── my_grades.php               # Comprehensive grade book with responsive score ledger
+├── assignments.php             # Coursework portal with sent work preview & submission tracking
+├── quizzes.php                 # Active & upcoming online examinations with responsive cards
 ├── take_quiz.php               # Interactive timed quiz-taking interface
 ├── quiz_result.php             # Post-exam question breakdown and score report
-├── study_materials.php         # Download center for teacher-published resources
+├── study_materials.php         # Responsive learning hub with in-browser document viewer & direct download
 ├── messages.php                # Direct messaging with professors and classmates
 ├── apply_leave.php             # Student leave application submission
-└── notices.php                 # Institutional circulars & pinned notices
+└── notices.php                 # Institutional circulars & responsive notice cards
 ```
 
 #### 🌟 Modern Student Academic Dashboard Highlights (`dashboard.php`):
@@ -240,14 +247,28 @@ The Student Portal empowers learners with self-service academic tracking, lectur
 - **Upcoming Tasks & Recent Grades Hub:**
   - *Upcoming Deliverables:* Pending assignments with due dates and overdue warning badges + 1-click "Submit"; available quizzes with question counts, time durations, and "Start Quiz" CTAs.
   - *Recent Grades & Feedback:* Published scores with percentage badges, marks obtained vs max marks, and teacher qualitative remarks.
-- **Recent Study Materials Download Hub:** Responsive 4-card grid highlighting newly uploaded syllabus files, lecture notes, and reference books with file format badges (PDF, DOC, PPT) and 1-click direct download.
+- **Recent Study Materials Download Hub:** Responsive 4-card grid highlighting newly uploaded syllabus files, lecture notes, and reference books with file format badges (PDF, DOC, PPT), inline **View Online** button, and direct download.
 - **Zero-Flicker Theme Synchronization:** Fully integrated with dark/light mode toggle via `MutationObserver` to re-render charts automatically on theme switch.
 
-#### Key Capabilities:
-- **Real-Time Attendance Monitoring:** Live visual alerts when attendance drops near institutional thresholds, with exact compensatory class calculations.
-- **Assessment Submission:** Submit assignments with automatic late-submission detection (`is_late`), file validation, and revision history.
-- **Interactive Quiz Engine:** Fully timed online quiz player with local counter protection, automated submission on timeout, and post-exam review.
-- **Peer & Faculty Messaging:** Discuss doubts with subject teachers or collaborate with peers in the same batch.
+#### Key Capabilities & Responsive Architecture:
+- **Mobile-First Responsive UI Architecture:** The entire student portal has been comprehensively overhauled for optimal usability on mobile smartphones (down to 320px screen width), tablets, and desktops. Uses responsive column stacking (`flex-col sm:flex-row`), flex-wrapping metadata tags (`flex-wrap gap-x-2 gap-y-1`), and dedicated full-width action toolbars to prevent button squishing and text truncation.
+- **Coursework Management & Sent Work Viewer (`assignments.php`):**
+  - Track active assignments, deadlines, late submission flags, and maximum marks.
+  - Integrated **Sent Submission Viewer**: After submitting coursework, students can view their sent document, verify exact submission timestamp, check grading status (`SUBMITTED`, `GRADED`, `LATE`), view marks awarded vs maximum score, and read qualitative feedback remarks from their instructor.
+- **Interactive Study Materials Hub (`study_materials.php`):**
+  - Access teacher-uploaded lecture notes, syllabi, and reference materials.
+  - **In-Browser Document Viewer Modal:** Embedded iframe preview for PDF documents, text files, and images without forcing downloads.
+  - Full-screen viewer, open in new tab, and direct download buttons with responsive mobile full-width action bars.
+- **Attendance Tracking & 2×2 Mobile Grid (`my_attendance.php`):**
+  - Real-time subject-by-subject attendance percentages with visual progress bars.
+  - Mobile-optimized 2×2 metric grid (`grid-cols-2 sm:grid-cols-4`) displaying Total, Present, Absent, and Late records cleanly without vertical clutter.
+  - Horizontally scrollable tabular attendance log with wrapping status badges.
+- **Academic Grade Book & Ledger (`my_grades.php`):**
+  - Comprehensive transcript view across semesters with GPA metrics, component mark breakdowns, and responsive score ledger cards that stack gracefully on mobile screens.
+- **Online Examination Suite (`quizzes.php` & `take_quiz.php`):**
+  - Responsive quiz cards with duration and question counts. Fully timed examination player with automatic submission on timeout and post-exam review breakdown.
+- **Campus Circulars & Communication (`notices.php` & `messages.php`):**
+  - Official college notices with attachment previews and downloads. Direct real-time messaging with professors and classmates, complete with threaded replies and emoji reactions.
 
 ---
 
@@ -438,17 +459,17 @@ college_cms/
 ├── controllers/                     # Application Business Logic Controllers
 │   ├── AdminController.php          # Admin dashboard & analytics logic
 │   ├── AssessmentController.php     # Manual assessment scoring logic
-│   ├── AssignmentController.php     # Coursework management & grading
+│   ├── AssignmentController.php     # Coursework lifecycle, assignment editing & student grading
 │   ├── AttendanceController.php     # Daily attendance calculation & recording
 │   ├── AuthController.php           # Authentication, session establishment, OTP mailer
 │   ├── FeedbackController.php       # Feedback ingestion & admin moderation
 │   ├── InquiryController.php        # Prospective student admissions inquiry pipeline
 │   ├── LeaveController.php          # Faculty & student leave workflows
-│   ├── MaterialController.php       # File repository uploading & streaming
+│   ├── MaterialController.php       # File repository uploading, editing with disk cleanup & streaming
 │   ├── MessageController.php        # Messaging, reactions, replies, pinning
 │   ├── NoticeController.php         # Official college circular publishing
 │   ├── QuizController.php           # Online test generation & auto-grading
-│   └── process_*.php                # Action dispatcher endpoint handlers
+│   └── process_*.php                # Action dispatcher endpoints (assignments, materials, submissions, etc.)
 ├── includes/                        # System Middlewares, Core Helpers, Libraries
 │   ├── PHPMailer/                   # PHPMailer SMTP email engine
 │   ├── auth_middleware.php          # Session verification (`require_auth`, `require_role`)
@@ -466,8 +487,8 @@ college_cms/
 ├── views/                           # Presentation Layer (Organized by Portal)
 │   ├── admin/                       # 50+ administrative management pages
 │   ├── auth/                        # Role-specific login pages, OTP, password reset
-│   ├── faculty/                     # Next-gen faculty workstation dashboard, attendance, grading, quizzes
-│   └── student/                     # Next-gen student academic dashboard, grades, quizzes, materials
+│   ├── faculty/                     # Next-gen faculty workstation, attendance, assignment editing, grading suite & quizzes
+│   └── student/                     # Mobile-first responsive student portal, sent work tracker, in-browser doc viewer & grades
 ├── database.sql                     # Complete MariaDB database dump with seed data
 ├── index.php                        # Application entry point, router & public landing page
 ├── manifest.json                    # Progressive Web App manifest configuration

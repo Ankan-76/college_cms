@@ -82,12 +82,12 @@ $base = defined('BASE_URL') ? BASE_URL : '/college_cms';
                 $color = $colors[$colorIdx];
             ?>
             <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
-                <div class="p-5 border-b border-slate-100 dark:border-slate-700/50 bg-gradient-to-r from-<?= $color ?>-50/50 to-transparent dark:from-<?= $color ?>-900/10 dark:to-transparent">
-                    <div class="flex items-center gap-3">
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-<?= $color ?>-100 text-<?= $color ?>-800 dark:bg-<?= $color ?>-900/40 dark:text-<?= $color ?>-300 border border-<?= $color ?>-200 dark:border-<?= $color ?>-800/50">
+                <div class="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-700/50 bg-gradient-to-r from-<?= $color ?>-50/50 to-transparent dark:from-<?= $color ?>-900/10 dark:to-transparent flex flex-wrap items-center justify-between gap-2.5">
+                    <div class="flex items-center gap-2.5 min-w-0">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-<?= $color ?>-100 text-<?= $color ?>-800 dark:bg-<?= $color ?>-900/40 dark:text-<?= $color ?>-300 border border-<?= $color ?>-200 dark:border-<?= $color ?>-800/50 shrink-0">
                             <?= htmlspecialchars($courseCode) ?>
                         </span>
-                        <h3 class="text-base font-bold text-slate-900 dark:text-white"><?= htmlspecialchars($group['course_name']) ?></h3>
+                        <h3 class="text-sm sm:text-base font-bold text-slate-900 dark:text-white truncate"><?= htmlspecialchars($group['course_name']) ?></h3>
                     </div>
                 </div>
                 
@@ -116,9 +116,9 @@ $base = defined('BASE_URL') ? BASE_URL : '/college_cms';
                     ?>
                     <div class="p-4 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
                         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                            <div class="flex-1">
-                                <div class="flex items-center gap-2 mb-1">
-                                    <h4 class="text-sm font-bold text-slate-900 dark:text-white"><?= htmlspecialchars($quiz['title']) ?></h4>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex flex-wrap items-center gap-2 mb-1">
+                                    <h4 class="text-sm font-bold text-slate-900 dark:text-white truncate"><?= htmlspecialchars($quiz['title']) ?></h4>
                                     <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-<?= $statusColor ?>-100 text-<?= $statusColor ?>-700 dark:bg-<?= $statusColor ?>-900/30 dark:text-<?= $statusColor ?>-400 shrink-0">
                                         <?= $status ?>
                                     </span>
@@ -139,7 +139,7 @@ $base = defined('BASE_URL') ? BASE_URL : '/college_cms';
                                 <?php if ($attempt): ?>
                                 <div class="mt-2 p-2.5 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg">
                                     <?php $pct = $attempt['total_marks'] > 0 ? round(($attempt['score'] / $attempt['total_marks']) * 100, 1) : 0; ?>
-                                    <p class="text-sm font-bold text-emerald-700 dark:text-emerald-400">
+                                    <p class="text-xs sm:text-sm font-bold text-emerald-700 dark:text-emerald-400">
                                         Score: <?= $attempt['score'] ?> / <?= $attempt['total_marks'] ?> (<?= $pct ?>%)
                                         &bull; <?= $attempt['correct_count'] ?> correct, <?= $attempt['wrong_count'] ?> wrong
                                     </p>
@@ -147,13 +147,13 @@ $base = defined('BASE_URL') ? BASE_URL : '/college_cms';
                                 <?php endif; ?>
                             </div>
                             
-                            <div class="flex items-center gap-2 shrink-0">
+                            <div class="flex items-center gap-2 pt-2.5 sm:pt-0 border-t sm:border-t-0 border-slate-100 dark:border-slate-700/60 justify-end sm:justify-start w-full sm:w-auto shrink-0">
                                 <?php if ($canTake): ?>
-                                <a href="<?= $base ?>/views/student/take_quiz.php?quiz_id=<?= $quiz['id'] ?>" onclick="return confirm('Start this quiz? You will have <?= $quiz['duration_minutes'] ?> minutes to complete it. The timer cannot be paused.')" class="inline-flex items-center gap-1.5 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-bold transition-colors shadow-sm hover:-translate-y-0.5">
+                                <a href="<?= $base ?>/views/student/take_quiz.php?quiz_id=<?= $quiz['id'] ?>" onclick="return confirm('Start this quiz? You will have <?= $quiz['duration_minutes'] ?> minutes to complete it. The timer cannot be paused.')" class="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl sm:rounded-lg text-sm font-bold transition-colors shadow-sm hover:-translate-y-0.5">
                                     <i data-lucide="play" class="w-4 h-4"></i> Start Quiz
                                 </a>
                                 <?php elseif ($attempt): ?>
-                                <a href="<?= $base ?>/views/student/quiz_result.php?quiz_id=<?= $quiz['id'] ?>" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 dark:text-indigo-300 rounded-lg text-xs font-bold transition-colors">
+                                <a href="<?= $base ?>/views/student/quiz_result.php?quiz_id=<?= $quiz['id'] ?>" class="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3.5 py-2 sm:py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 dark:text-indigo-300 rounded-xl sm:rounded-lg text-xs font-bold transition-colors">
                                     <i data-lucide="eye" class="w-3.5 h-3.5"></i> View Results
                                 </a>
                                 <?php endif; ?>

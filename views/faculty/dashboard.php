@@ -893,9 +893,19 @@ require_once __DIR__ . '/../../includes/header.php';
                                         </p>
                                     </div>
                                 </div>
-                                <a href="<?= $base ?>/uploads/materials/<?= htmlspecialchars($mat['file_path']) ?>" download class="p-2 rounded-xl text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-200/60 dark:hover:bg-slate-700 transition-colors shrink-0" title="Download Resource">
-                                    <i data-lucide="download" class="w-4 h-4"></i>
-                                </a>
+                                <?php 
+                                    $matFileUrl = (strpos($mat['file_path'], 'uploads/') === 0) 
+                                        ? ($base . '/' . $mat['file_path']) 
+                                        : ($base . '/uploads/materials/' . $mat['file_path']);
+                                ?>
+                                <div class="flex items-center gap-1 shrink-0">
+                                    <a href="<?= $matFileUrl ?>" target="_blank" class="p-2 rounded-xl text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-200/60 dark:hover:bg-slate-700 transition-colors" title="View Material Online">
+                                        <i data-lucide="eye" class="w-4 h-4"></i>
+                                    </a>
+                                    <a href="<?= $matFileUrl ?>" download class="p-2 rounded-xl text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-200/60 dark:hover:bg-slate-700 transition-colors" title="Download Resource">
+                                        <i data-lucide="download" class="w-4 h-4"></i>
+                                    </a>
+                                </div>
                             </div>
                         <?php endforeach; ?>
                     <?php endif; ?>

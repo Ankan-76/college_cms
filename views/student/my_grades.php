@@ -56,25 +56,25 @@ require_once __DIR__ . '/../../includes/header.php';
 
         <?php if (!empty($allGrades)): ?>
         <!-- Overall Summary -->
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-5 text-center">
-                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Assessments</p>
-                <p class="text-3xl font-black text-slate-900 dark:text-white"><?= count($allGrades) ?></p>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+            <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-4 sm:p-5 text-center">
+                <p class="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 sm:mb-2">Assessments</p>
+                <p class="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white"><?= count($allGrades) ?></p>
             </div>
-            <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-5 text-center">
-                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Total Marks</p>
-                <p class="text-3xl font-black text-slate-900 dark:text-white"><?= $totalMarks ?> <span class="text-base text-slate-400">/ <?= $totalMaxMarks ?></span></p>
+            <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-4 sm:p-5 text-center">
+                <p class="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 sm:mb-2">Total Marks</p>
+                <p class="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white"><?= $totalMarks ?> <span class="text-xs sm:text-base text-slate-400 font-normal">/ <?= $totalMaxMarks ?></span></p>
             </div>
-            <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-5 text-center">
+            <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-4 sm:p-5 text-center">
                 <?php $overallGradeColor = $overallPct >= 75 ? 'emerald' : ($overallPct >= 50 ? 'amber' : 'rose'); ?>
-                <p class="text-xs font-bold text-<?= $overallGradeColor ?>-500 uppercase tracking-wider mb-2">Overall</p>
-                <p class="text-3xl font-black text-<?= $overallGradeColor ?>-600 dark:text-<?= $overallGradeColor ?>-400"><?= $overallPct ?>%</p>
+                <p class="text-[10px] sm:text-xs font-bold text-<?= $overallGradeColor ?>-500 uppercase tracking-wider mb-1 sm:mb-2">Overall</p>
+                <p class="text-2xl sm:text-3xl font-black text-<?= $overallGradeColor ?>-600 dark:text-<?= $overallGradeColor ?>-400"><?= $overallPct ?>%</p>
             </div>
         </div>
         <?php endif; ?>
 
         <?php if (empty($allGrades)): ?>
-            <div class="bg-white dark:bg-slate-800 rounded-xl p-10 text-center border border-slate-200 dark:border-slate-700 shadow-sm">
+            <div class="bg-white dark:bg-slate-800 rounded-xl p-8 sm:p-10 text-center border border-slate-200 dark:border-slate-700 shadow-sm">
                 <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-amber-50 dark:bg-amber-900/30 text-amber-500 mb-4">
                     <i data-lucide="file-question" class="w-8 h-8"></i>
                 </div>
@@ -98,14 +98,14 @@ require_once __DIR__ . '/../../includes/header.php';
                 $coursePctColor = $coursePct >= 75 ? 'emerald' : ($coursePct >= 50 ? 'amber' : 'rose');
             ?>
             <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
-                <div class="p-5 border-b border-slate-100 dark:border-slate-700/50 bg-gradient-to-r from-<?= $color ?>-50/50 to-transparent dark:from-<?= $color ?>-900/10 dark:to-transparent flex items-center justify-between">
-                    <div class="flex items-center gap-3">
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-<?= $color ?>-100 text-<?= $color ?>-800 dark:bg-<?= $color ?>-900/40 dark:text-<?= $color ?>-300 border border-<?= $color ?>-200 dark:border-<?= $color ?>-800/50">
+                <div class="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-700/50 bg-gradient-to-r from-<?= $color ?>-50/50 to-transparent dark:from-<?= $color ?>-900/10 dark:to-transparent flex flex-wrap items-center justify-between gap-2.5">
+                    <div class="flex items-center gap-2.5 min-w-0">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-<?= $color ?>-100 text-<?= $color ?>-800 dark:bg-<?= $color ?>-900/40 dark:text-<?= $color ?>-300 border border-<?= $color ?>-200 dark:border-<?= $color ?>-800/50 shrink-0">
                             <?= htmlspecialchars($courseCode) ?>
                         </span>
-                        <h3 class="text-base font-bold text-slate-900 dark:text-white"><?= htmlspecialchars($group['course_name']) ?></h3>
+                        <h3 class="text-sm sm:text-base font-bold text-slate-900 dark:text-white truncate"><?= htmlspecialchars($group['course_name']) ?></h3>
                     </div>
-                    <span class="text-sm font-black text-<?= $coursePctColor ?>-600 dark:text-<?= $coursePctColor ?>-400"><?= $coursePct ?>%</span>
+                    <span class="text-sm font-black text-<?= $coursePctColor ?>-600 dark:text-<?= $coursePctColor ?>-400 shrink-0"><?= $coursePct ?>%</span>
                 </div>
                 
                 <div class="overflow-x-auto">

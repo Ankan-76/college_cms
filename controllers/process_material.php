@@ -30,6 +30,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         header('Location: ../views/faculty/study_materials.php');
         exit;
+    } elseif (isset($_POST['action']) && $_POST['action'] === 'edit') {
+        $materialId = isset($_POST['material_id']) ? (int)$_POST['material_id'] : 0;
+        $courseId = isset($_POST['course_id']) ? (int)$_POST['course_id'] : 0;
+        $title = isset($_POST['title']) ? trim($_POST['title']) : '';
+        $file = (isset($_FILES['material_file']) && $_FILES['material_file']['error'] === UPLOAD_ERR_OK) 
+            ? $_FILES['material_file'] 
+            : null;
+
+        if ($materialId > 0 && $courseId > 0 && !empty($title)) {
+            $result = $controller->updateMaterial($materialId, $facultyId, $courseId, $title, $file);
+            if ($result['success']) {
+                $_SESSION['flash_success'] = $result['message'];
+            } else {
+                $_SESSION['flash_error'] = $result['message'];
+            }
+        } else {
+            $_SESSION['flash_error'] = 'Please provide valid course and title for study material.';
+        }
+        
+        header('Location: ../views/faculty/study_materials.php');
+        exit;
     }
 } elseif ($_SERVER['REQUEST_METHOD'] === 'GET') {
     if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['id'])) {

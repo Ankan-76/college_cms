@@ -72,7 +72,7 @@ $notices = $controller->getNoticesForRole($_SESSION['role_name']);
                                 <?= nl2br(htmlspecialchars($notice['content'])) ?>
                             </div>
                             
-                            <div class="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center text-sm text-slate-500 dark:text-slate-400">
+                            <div class="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
                                 <span class="flex items-center gap-1.5 font-medium">
                                     <i data-lucide="user" class="w-4 h-4"></i> Published by <?= htmlspecialchars($notice['author']) ?>
                                 </span>

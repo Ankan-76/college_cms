@@ -1165,11 +1165,22 @@ require_once __DIR__ . '/../../includes/header.php';
                                     <?= htmlspecialchars($mat['course_code']) ?> &bull; <?= htmlspecialchars($mat['faculty_name'] ?? 'Faculty') ?>
                                 </p>
                             </div>
+                            <?php 
+                                $matFileUrl = (strpos($mat['file_path'], 'uploads/') === 0) 
+                                    ? ($base . '/' . $mat['file_path']) 
+                                    : ($base . '/uploads/materials/' . $mat['file_path']);
+                            ?>
                             <div class="mt-4 pt-3 border-t border-slate-200/60 dark:border-slate-700/50 flex items-center justify-between">
                                 <span class="text-[10px] text-slate-400"><?= date('M d', strtotime($mat['uploaded_at'])) ?></span>
-                                <a href="<?= $base ?>/uploads/materials/<?= htmlspecialchars($mat['file_path']) ?>" download class="inline-flex items-center gap-1 text-xs font-bold text-teal-600 hover:text-teal-700 dark:text-teal-400">
-                                    <i data-lucide="download" class="w-3.5 h-3.5"></i> Download
-                                </a>
+                                <div class="flex items-center gap-2">
+                                    <a href="<?= $matFileUrl ?>" target="_blank" class="inline-flex items-center gap-1 text-xs font-bold text-teal-600 hover:text-teal-700 dark:text-teal-400" title="View study material without downloading">
+                                        <i data-lucide="eye" class="w-3.5 h-3.5"></i> View
+                                    </a>
+                                    <span class="text-slate-300 dark:text-slate-600">&bull;</span>
+                                    <a href="<?= $matFileUrl ?>" download class="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200" title="Download to device">
+                                        <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                                    </a>
+                                </div>
                             </div>
                         </div>
                     <?php endforeach; ?>

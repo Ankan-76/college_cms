@@ -110,12 +110,21 @@ if ($selectedCourseId > 0) {
                         <div class="p-3 rounded-lg <?= $colorClass ?>">
                             <i data-lucide="<?= $icon ?>" class="w-6 h-6"></i>
                         </div>
-                        <div class="flex gap-2">
-                            <a href="<?= htmlspecialchars('/college_cms/' . $mat['file_path']) ?>" download class="text-slate-400 hover:text-indigo-500 transition-colors" title="Download">
-                                <i data-lucide="download" class="w-4 h-4"></i>
-                            </a>
+                        <div class="flex items-center gap-1">
+                            <button type="button" 
+                                onclick="viewMaterial('<?= htmlspecialchars('/college_cms/' . $mat['file_path'], ENT_QUOTES, 'UTF-8') ?>', '<?= htmlspecialchars(addslashes($mat['title'])) ?>', '<?= strtolower($ext) ?>')" 
+                                class="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors" 
+                                title="View Material Online">
+                                <i data-lucide="eye" class="w-4 h-4"></i>
+                            </button>
                             <?php if ($mat['faculty_id'] == $facultyId): ?>
-                            <a href="../../controllers/process_material.php?action=delete&id=<?= $mat['id'] ?>" onclick="return confirm('Are you sure you want to delete this material?')" class="text-slate-400 hover:text-rose-500 transition-colors" title="Delete">
+                            <button type="button" 
+                                onclick="openEditMaterialModal(<?= $mat['id'] ?>, <?= $mat['course_id'] ?>, '<?= htmlspecialchars(addslashes($mat['title'])) ?>', '<?= htmlspecialchars(addslashes(basename($mat['file_path']))) ?>')" 
+                                class="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/30 rounded-lg transition-colors" 
+                                title="Edit Study Material">
+                                <i data-lucide="edit-3" class="w-4 h-4"></i>
+                            </button>
+                            <a href="../../controllers/process_material.php?action=delete&id=<?= $mat['id'] ?>" onclick="return confirm('Are you sure you want to delete this material?')" class="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition-colors" title="Delete">
                                 <i data-lucide="trash-2" class="w-4 h-4"></i>
                             </a>
                             <?php endif; ?>
@@ -132,6 +141,24 @@ if ($selectedCourseId > 0) {
                         <span class="font-medium bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded">
                             <?= number_format($mat['file_size'] / 1024 / 1024, 2) ?> MB
                         </span>
+                    </div>
+                    <div class="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between">
+                        <button type="button" 
+                            onclick="viewMaterial('<?= htmlspecialchars('/college_cms/' . $mat['file_path'], ENT_QUOTES, 'UTF-8') ?>', '<?= htmlspecialchars(addslashes($mat['title'])) ?>', '<?= strtolower($ext) ?>')" 
+                            class="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300">
+                            <i data-lucide="eye" class="w-3.5 h-3.5"></i> View Material
+                        </button>
+                        <?php if ($mat['faculty_id'] == $facultyId): ?>
+                        <button type="button" 
+                            onclick="openEditMaterialModal(<?= $mat['id'] ?>, <?= $mat['course_id'] ?>, '<?= htmlspecialchars(addslashes($mat['title'])) ?>', '<?= htmlspecialchars(addslashes(basename($mat['file_path']))) ?>')" 
+                            class="inline-flex items-center gap-1 text-xs text-amber-600 hover:text-amber-700 dark:text-amber-400 font-semibold">
+                            <i data-lucide="edit-3" class="w-3.5 h-3.5"></i> Edit Material
+                        </button>
+                        <?php else: ?>
+                        <a href="<?= htmlspecialchars('/college_cms/' . $mat['file_path']) ?>" download class="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 font-medium">
+                            <i data-lucide="download" class="w-3.5 h-3.5"></i> Download
+                        </a>
+                        <?php endif; ?>
                     </div>
                 </div>
                 <?php endforeach; ?>
@@ -186,9 +213,204 @@ if ($selectedCourseId > 0) {
             </form>
         </div>
     </div>
+
+    <!-- Edit Material Modal -->
+    <div id="edit-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex justify-center items-center p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-xl max-w-md w-full border border-slate-200 dark:border-slate-700 overflow-hidden animate-in fade-in duration-200">
+            <div class="flex justify-between items-center px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/70">
+                <div class="flex items-center gap-2.5">
+                    <div class="p-2 rounded-lg bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400">
+                        <i data-lucide="edit-3" class="w-5 h-5"></i>
+                    </div>
+                    <h2 class="text-base font-bold text-slate-900 dark:text-white">Edit Study Material</h2>
+                </div>
+                <button type="button" onclick="closeEditModal()" class="text-slate-400 hover:text-slate-500 dark:hover:text-slate-300 p-1 rounded-lg">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <form action="../../controllers/process_material.php" method="POST" enctype="multipart/form-data" class="p-6 space-y-4">
+                <input type="hidden" name="action" value="edit">
+                <input type="hidden" name="material_id" id="edit-material-id" value="">
+                
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Course</label>
+                    <select name="course_id" id="edit-course-id" required class="block w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500 p-2.5 text-sm outline-none">
+                        <option value="">-- Select Course --</option>
+                        <?php foreach ($courses as $course): ?>
+                            <option value="<?= $course['id'] ?>">
+                                <?= htmlspecialchars($course['course_code'] . ' - ' . $course['course_name']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Title / Topic Name</label>
+                    <input type="text" name="title" id="edit-title" required placeholder="e.g. Chapter 1 Notes" class="block w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500 p-2.5 text-sm outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                        Replace File <span class="text-xs font-normal text-slate-400">(optional)</span>
+                    </label>
+                    <div id="edit-current-file-box" class="text-xs text-slate-500 dark:text-slate-400 mb-2 truncate bg-slate-100 dark:bg-slate-700/50 px-2.5 py-1.5 rounded-lg flex items-center gap-1.5">
+                        <i data-lucide="file" class="w-3.5 h-3.5 text-slate-400 shrink-0"></i>
+                        <span class="truncate">Current: <strong id="edit-current-filename" class="font-semibold text-slate-700 dark:text-slate-200"></strong></span>
+                    </div>
+                    <input type="file" name="material_file" accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.zip,.rar" class="block w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100 dark:file:bg-amber-900/30 dark:file:text-amber-400">
+                    <p class="mt-1 text-[11px] text-slate-400">Leave blank to keep existing file. Allowed: PDF, Word, PPT, ZIP (Max 10MB).</p>
+                </div>
+
+                <div class="pt-3 flex gap-3">
+                    <button type="button" onclick="closeEditModal()" class="flex-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 py-2.5 rounded-xl text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+                        Cancel
+                    </button>
+                    <button type="submit" class="flex-1 bg-amber-600 hover:bg-amber-700 text-white py-2.5 rounded-xl text-xs font-bold transition-colors shadow-sm">
+                        Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Material Viewer Modal -->
+    <div id="material-viewer-modal" onclick="if(event.target === this) closeViewer()" class="fixed inset-0 bg-slate-900/75 backdrop-blur-md z-50 hidden flex flex-col justify-center items-center p-0 sm:p-4 md:p-6 transition-all duration-200 cursor-pointer">
+        <div class="bg-white dark:bg-slate-800 rounded-none sm:rounded-2xl shadow-2xl border-0 sm:border border-slate-200 dark:border-slate-700 w-full max-w-5xl h-full sm:h-[92vh] flex flex-col overflow-hidden animate-in fade-in duration-200 cursor-default">
+            <!-- Viewer Header -->
+            <div class="flex items-center justify-between px-3 sm:px-5 py-3 sm:py-3.5 border-b border-slate-200 dark:border-slate-700 bg-slate-50/90 dark:bg-slate-800/90 shrink-0 gap-2">
+                <div class="flex items-center gap-2.5 sm:gap-3 min-w-0 pr-1">
+                    <div class="p-1.5 sm:p-2 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 shrink-0">
+                        <i data-lucide="book-open" class="w-4 h-4 sm:w-5 sm:h-5"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <h3 id="viewer-title" class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">Document Viewer</h3>
+                        <p id="viewer-subtitle" class="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 truncate">Viewing material online</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                    <a id="viewer-new-tab" href="#" target="_blank" class="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-white dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600 rounded-lg text-xs font-semibold transition-colors shadow-sm" title="Open full screen in a new tab">
+                        <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                        <span class="hidden sm:inline">Open in New Tab</span>
+                        <span class="sm:hidden">Open</span>
+                    </a>
+                    <a id="viewer-download" href="#" download class="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:hover:bg-indigo-900/60 dark:text-indigo-300 rounded-lg text-xs font-semibold transition-colors" title="Download this file">
+                        <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                        <span class="hidden sm:inline">Download</span>
+                    </a>
+                    <button type="button" onclick="closeViewer()" class="p-1.5 sm:p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors ml-0.5" title="Close Viewer">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Viewer Body -->
+            <div class="flex-1 bg-slate-100 dark:bg-slate-900 relative overflow-hidden flex items-center justify-center">
+                <!-- Loading Indicator -->
+                <div id="viewer-loading" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-100/90 dark:bg-slate-900/90 z-10 transition-opacity">
+                    <div class="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                    <p class="mt-3 text-xs font-semibold text-slate-500 dark:text-slate-400">Loading document...</p>
+                </div>
+
+                <!-- Iframe Container for PDF, text, images -->
+                <iframe id="viewer-frame" class="w-full h-full border-0 hidden" src="" onload="onViewerFrameLoaded()"></iframe>
+
+                <!-- Fallback container for office/archive files (DOC, PPT, ZIP) -->
+                <div id="viewer-fallback" class="hidden p-8 text-center max-w-md mx-auto">
+                    <div class="w-16 h-16 rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mx-auto mb-4">
+                        <i data-lucide="file-question" class="w-8 h-8"></i>
+                    </div>
+                    <h4 id="fallback-filename" class="text-base font-bold text-slate-900 dark:text-white mb-2"></h4>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mb-6">
+                        This file format cannot be displayed directly inside the embedded viewer. You can open it in a new browser tab or download it to view on your device.
+                    </p>
+                    <div class="flex items-center justify-center gap-3">
+                        <a id="fallback-new-tab" href="#" target="_blank" class="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition-all shadow-sm">
+                            <i data-lucide="external-link" class="w-4 h-4"></i> View in New Tab
+                        </a>
+                        <a id="fallback-download" href="#" download class="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 rounded-lg text-xs font-bold transition-all">
+                            <i data-lucide="download" class="w-4 h-4"></i> Download File
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </main>
 
 <script>
+    function viewMaterial(fileUrl, title, ext) {
+        const modal = document.getElementById('material-viewer-modal');
+        const titleEl = document.getElementById('viewer-title');
+        const subtitleEl = document.getElementById('viewer-subtitle');
+        const frame = document.getElementById('viewer-frame');
+        const fallback = document.getElementById('viewer-fallback');
+        const loading = document.getElementById('viewer-loading');
+        const newTabBtn = document.getElementById('viewer-new-tab');
+        const downloadBtn = document.getElementById('viewer-download');
+
+        titleEl.textContent = title || 'Study Material';
+        subtitleEl.textContent = 'Format: ' + (ext || 'Document').toUpperCase();
+        newTabBtn.href = fileUrl;
+        downloadBtn.href = fileUrl;
+
+        const previewableExts = ['pdf', 'txt', 'png', 'jpg', 'jpeg', 'gif', 'svg', 'webp'];
+        const canPreview = previewableExts.includes((ext || '').toLowerCase());
+
+        if (canPreview) {
+            fallback.classList.add('hidden');
+            frame.classList.remove('hidden');
+            loading.classList.remove('hidden');
+            frame.src = fileUrl;
+        } else {
+            frame.classList.add('hidden');
+            frame.src = '';
+            loading.classList.add('hidden');
+            fallback.classList.remove('hidden');
+            document.getElementById('fallback-filename').textContent = title + ' (.' + ext + ')';
+            document.getElementById('fallback-new-tab').href = fileUrl;
+            document.getElementById('fallback-download').href = fileUrl;
+        }
+
+        modal.classList.remove('hidden');
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    function onViewerFrameLoaded() {
+        const loading = document.getElementById('viewer-loading');
+        if (loading) loading.classList.add('hidden');
+    }
+
+    function closeViewer() {
+        const modal = document.getElementById('material-viewer-modal');
+        const frame = document.getElementById('viewer-frame');
+        if (frame) frame.src = '';
+        if (modal) modal.classList.add('hidden');
+    }
+
+    function openEditMaterialModal(id, courseId, title, currentFilename) {
+        document.getElementById('edit-material-id').value = id;
+        document.getElementById('edit-course-id').value = courseId;
+        document.getElementById('edit-title').value = title;
+        const currentFileEl = document.getElementById('edit-current-filename');
+        if (currentFileEl) {
+            currentFileEl.textContent = currentFilename || 'attached file';
+        }
+        document.getElementById('edit-modal').classList.remove('hidden');
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    function closeEditModal() {
+        const editModal = document.getElementById('edit-modal');
+        if (editModal) editModal.classList.add('hidden');
+    }
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeViewer();
+            closeEditModal();
+        }
+    });
+
     document.addEventListener('DOMContentLoaded', () => {
         if (typeof lucide !== 'undefined') lucide.createIcons();
     });

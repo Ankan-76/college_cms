@@ -361,7 +361,7 @@ class QuizController {
                        (SELECT COALESCE(SUM(qq2.marks), 0) FROM quiz_questions qq2 WHERE qq2.quiz_id = q.id) as total_marks
                 FROM quizzes q
                 JOIN courses c ON q.course_id = c.id
-                LEFT JOIN faculty_profiles fp ON q.faculty_id = fp.id
+                LEFT JOIN teachers fp ON q.faculty_id = fp.id
                 WHERE c.department_id = ? AND c.semester_id = ? AND q.status = 'PUBLISHED'
                 ORDER BY q.end_time DESC, q.created_at DESC
             ");

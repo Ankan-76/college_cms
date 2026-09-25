@@ -126,10 +126,14 @@ $isPast = strtotime($assignment['deadline']) < time();
                                 <?php endif; ?>
                             </td>
                             <td class="px-5 py-3.5 text-center">
-                                <?php if ($sub['submission_id']): ?>
+                                <?php if ($sub['submission_id'] && $sub['file_path'] !== 'offline'): ?>
                                     <a href="<?= $base . '/' . htmlspecialchars($sub['file_path']) ?>" target="_blank" download class="inline-flex items-center gap-1 text-xs text-indigo-600 dark:text-indigo-400 font-medium hover:underline">
                                         <i data-lucide="download" class="w-3.5 h-3.5"></i> <?= htmlspecialchars($sub['file_name']) ?>
                                     </a>
+                                <?php elseif ($sub['submission_id'] && $sub['file_path'] === 'offline'): ?>
+                                    <span class="inline-flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 font-medium">
+                                        <i data-lucide="clipboard-pen" class="w-3.5 h-3.5"></i> Offline Grade
+                                    </span>
                                 <?php else: ?>
                                     <span class="text-xs text-slate-400">—</span>
                                 <?php endif; ?>
@@ -149,11 +153,19 @@ $isPast = strtotime($assignment['deadline']) < time();
                                 <span class="text-xs text-slate-500 dark:text-slate-400 line-clamp-2"><?= htmlspecialchars($sub['feedback'] ?? '—') ?></span>
                             </td>
                             <td class="px-5 py-3.5 text-center">
-                                <?php if ($sub['submission_id']): ?>
-                                    <button type="button" onclick="openGradeModal(<?= $sub['submission_id'] ?>, '<?= htmlspecialchars(addslashes($sub['name'])) ?>', <?= $sub['marks_obtained'] !== null ? $sub['marks_obtained'] : '""' ?>, '<?= htmlspecialchars(addslashes($sub['feedback'] ?? '')) ?>')" class="text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 dark:text-indigo-300 px-3 py-1.5 rounded-lg font-bold transition-colors">
-                                        <?= $sub['marks_obtained'] !== null ? 'Edit Grade' : 'Grade' ?>
-                                    </button>
-                                <?php endif; ?>
+                                <button type="button" 
+                                    class="grade-btn text-xs px-3 py-1.5 rounded-lg font-bold transition-all shadow-sm inline-flex items-center gap-1.5 <?= $sub['marks_obtained'] !== null ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:hover:bg-emerald-900/50 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800' : ($sub['submission_id'] ? 'bg-indigo-600 hover:bg-indigo-700 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-slate-300') ?>"
+                                    data-submission-id="<?= (int)($sub['submission_id'] ?? 0) ?>"
+                                    data-student-id="<?= (int)$sub['student_id'] ?>"
+                                    data-student-name="<?= htmlspecialchars($sub['name'], ENT_QUOTES, 'UTF-8') ?>"
+                                    data-student-roll="<?= htmlspecialchars($sub['roll_number'], ENT_QUOTES, 'UTF-8') ?>"
+                                    data-marks="<?= $sub['marks_obtained'] !== null ? htmlspecialchars($sub['marks_obtained']) : '' ?>"
+                                    data-feedback="<?= htmlspecialchars($sub['feedback'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                                    data-has-file="<?= !empty($sub['submission_id']) && $sub['file_path'] !== 'offline' ? '1' : '0' ?>"
+                                    title="<?= $sub['marks_obtained'] !== null ? 'Modify existing grade' : 'Assign grade & feedback' ?>">
+                                    <i data-lucide="<?= $sub['marks_obtained'] !== null ? 'edit-2' : 'award' ?>" class="w-3.5 h-3.5"></i>
+                                    <span><?= $sub['marks_obtained'] !== null ? 'Edit Grade' : 'Grade' ?></span>
+                                </button>
                             </td>
                         </tr>
                         <?php endforeach; ?>
@@ -168,8 +180,10 @@ $isPast = strtotime($assignment['deadline']) < time();
     <div id="grade-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex justify-center items-center">
         <div class="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-md w-full mx-4 border border-slate-200 dark:border-slate-700">
             <div class="flex justify-between items-center px-6 py-4 border-b border-slate-200 dark:border-slate-700">
-                <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Grade Submission</h2>
-                <button onclick="document.getElementById('grade-modal').classList.add('hidden')" class="text-slate-400 hover:text-slate-500">
+                <h2 class="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                    <i data-lucide="award" class="w-5 h-5 text-indigo-500"></i> Grade Submission
+                </h2>
+                <button type="button" onclick="closeGradeModal()" class="text-slate-400 hover:text-slate-500">
                     <i data-lucide="x" class="w-5 h-5"></i>
                 </button>
             </div>
@@ -177,21 +191,32 @@ $isPast = strtotime($assignment['deadline']) < time();
                 <input type="hidden" name="action" value="grade">
                 <input type="hidden" name="assignment_id" value="<?= $assignmentId ?>">
                 <input type="hidden" name="submission_id" id="grade-submission-id">
+                <input type="hidden" name="student_id" id="grade-student-id">
                 
-                <p class="text-sm text-slate-600 dark:text-slate-400">Grading submission by: <span id="grade-student-name" class="font-bold text-slate-900 dark:text-white"></span></p>
-                
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Marks (out of <?= $assignment['max_marks'] ?>)</label>
-                    <input type="number" name="marks" id="grade-marks" required min="0" max="<?= $assignment['max_marks'] ?>" step="0.5" class="block w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm focus:border-primary p-2.5">
+                <div class="p-3.5 bg-slate-50 dark:bg-slate-700/50 rounded-lg space-y-1 border border-slate-100 dark:border-slate-700">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Student</span>
+                        <span id="grade-modal-note" class="text-xs"></span>
+                    </div>
+                    <p class="text-sm font-bold text-slate-900 dark:text-white" id="grade-student-name"></p>
+                    <p class="text-xs text-slate-500 dark:text-slate-400" id="grade-student-roll"></p>
                 </div>
                 
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Feedback</label>
-                    <textarea name="feedback" id="grade-feedback" rows="3" placeholder="Comments, suggestions, etc." class="block w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm focus:border-primary p-2.5"></textarea>
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300">Marks Obtained</label>
+                        <span class="text-xs text-slate-500 dark:text-slate-400">Max Marks: <strong class="text-indigo-600 dark:text-indigo-400"><?= $assignment['max_marks'] ?></strong></span>
+                    </div>
+                    <input type="number" name="marks" id="grade-marks" required min="0" max="<?= $assignment['max_marks'] ?>" step="0.5" placeholder="e.g. 85" class="block w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm focus:border-primary p-2.5">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Instructor Feedback</label>
+                    <textarea name="feedback" id="grade-feedback" rows="3" placeholder="Add comments, guidance, or remarks for the student..." class="block w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm focus:border-primary p-2.5"></textarea>
                 </div>
 
                 <div class="pt-4 flex gap-3">
-                    <button type="button" onclick="document.getElementById('grade-modal').classList.add('hidden')" class="flex-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 py-2.5 rounded-lg font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+                    <button type="button" onclick="closeGradeModal()" class="flex-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 py-2.5 rounded-lg font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
                         Cancel
                     </button>
                     <button type="submit" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-lg font-medium transition-colors shadow-sm">
@@ -204,15 +229,45 @@ $isPast = strtotime($assignment['deadline']) < time();
 </main>
 
 <script>
-    function openGradeModal(submissionId, studentName, marks, feedback) {
+    function openGradeModal(btn) {
+        const submissionId = btn.getAttribute('data-submission-id') || 0;
+        const studentId = btn.getAttribute('data-student-id') || 0;
+        const studentName = btn.getAttribute('data-student-name') || '';
+        const studentRoll = btn.getAttribute('data-student-roll') || '';
+        const marks = btn.getAttribute('data-marks') || '';
+        const feedback = btn.getAttribute('data-feedback') || '';
+        const hasFile = btn.getAttribute('data-has-file') === '1';
+
         document.getElementById('grade-submission-id').value = submissionId;
+        document.getElementById('grade-student-id').value = studentId;
         document.getElementById('grade-student-name').textContent = studentName;
-        document.getElementById('grade-marks').value = marks || '';
-        document.getElementById('grade-feedback').value = feedback || '';
+        document.getElementById('grade-student-roll').textContent = studentRoll ? 'Roll No: ' + studentRoll : '';
+        document.getElementById('grade-marks').value = marks;
+        document.getElementById('grade-feedback').value = feedback;
+
+        const noteEl = document.getElementById('grade-modal-note');
+        if (noteEl) {
+            if (hasFile) {
+                noteEl.innerHTML = '<span class="text-indigo-600 dark:text-indigo-400 font-medium">✓ Online Submission</span>';
+            } else {
+                noteEl.innerHTML = '<span class="text-amber-600 dark:text-amber-400 font-medium">Offline / Direct Grade</span>';
+            }
+        }
+
         document.getElementById('grade-modal').classList.remove('hidden');
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    function closeGradeModal() {
+        document.getElementById('grade-modal').classList.add('hidden');
     }
 
     document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.grade-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                openGradeModal(this);
+            });
+        });
         if (typeof lucide !== 'undefined') lucide.createIcons();
     });
 </script>

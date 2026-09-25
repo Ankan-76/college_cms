@@ -104,9 +104,24 @@ $base = defined('BASE_URL') ? BASE_URL : '/college_cms';
                             <?= $statusLabel ?>
                         </span>
                         <div class="flex gap-1">
-                            <a href="<?= $base ?>/views/faculty/view_submissions.php?assignment_id=<?= $asgn['id'] ?>" class="p-1.5 text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors" title="View Submissions">
+                            <a href="<?= $base ?>/views/faculty/view_submissions.php?assignment_id=<?= $asgn['id'] ?>" class="p-1.5 text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors" title="View Submissions & Grades">
                                 <i data-lucide="eye" class="w-4 h-4"></i>
                             </a>
+                            <button type="button" 
+                                onclick='openEditModal(<?= htmlspecialchars(json_encode([
+                                    'id' => (int)$asgn['id'],
+                                    'title' => $asgn['title'],
+                                    'description' => $asgn['description'] ?? '',
+                                    'max_marks' => (int)$asgn['max_marks'],
+                                    'deadline' => date('Y-m-d\TH:i', strtotime($asgn['deadline'])),
+                                    'allow_late' => (int)($asgn['allow_late'] ?? 1),
+                                    'status' => $asgn['status'] ?? 'ACTIVE',
+                                    'reference_file' => $asgn['reference_file'] ? basename($asgn['reference_file']) : ''
+                                ]), ENT_QUOTES, 'UTF-8') ?>)' 
+                                class="p-1.5 text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/30 rounded-lg transition-colors" 
+                                title="Edit Assignment (Extend date, marks, etc.)">
+                                <i data-lucide="pencil" class="w-4 h-4"></i>
+                            </button>
                             <a href="<?= $base ?>/controllers/process_assignment.php?action=delete&id=<?= $asgn['id'] ?>&course_id=<?= $selectedCourseId ?>" onclick="return confirm('Delete this assignment and all submissions?')" class="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition-colors" title="Delete">
                                 <i data-lucide="trash-2" class="w-4 h-4"></i>
                             </a>
@@ -145,11 +160,19 @@ $base = defined('BASE_URL') ? BASE_URL : '/college_cms';
                         </div>
                     </div>
                     
-                    <?php if ($asgn['reference_file']): ?>
-                    <a href="<?= $base . '/' . htmlspecialchars($asgn['reference_file']) ?>" target="_blank" class="mt-3 inline-flex items-center gap-1.5 text-xs text-indigo-600 dark:text-indigo-400 font-medium hover:underline">
-                        <i data-lucide="paperclip" class="w-3 h-3"></i> Reference File
-                    </a>
-                    <?php endif; ?>
+                    <div class="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between">
+                        <?php if ($asgn['reference_file']): ?>
+                        <a href="<?= $base . '/' . htmlspecialchars($asgn['reference_file']) ?>" target="_blank" class="inline-flex items-center gap-1.5 text-xs text-indigo-600 dark:text-indigo-400 font-medium hover:underline">
+                            <i data-lucide="paperclip" class="w-3.5 h-3.5"></i> Reference File
+                        </a>
+                        <?php else: ?>
+                        <span class="text-xs text-slate-400">No attachment</span>
+                        <?php endif; ?>
+
+                        <a href="<?= $base ?>/views/faculty/view_submissions.php?assignment_id=<?= $asgn['id'] ?>" class="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300">
+                            Grades & Submissions <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+                        </a>
+                    </div>
                 </div>
                 <?php endforeach; ?>
             </div>
@@ -219,9 +242,104 @@ $base = defined('BASE_URL') ? BASE_URL : '/college_cms';
             </form>
         </div>
     </div>
+
+    <!-- Edit Assignment Modal -->
+    <div id="edit-assignment-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex justify-center items-center">
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-lg w-full mx-4 border border-slate-200 dark:border-slate-700 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+                <h2 class="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                    <i data-lucide="pencil" class="w-5 h-5 text-amber-500"></i> Edit Assignment
+                </h2>
+                <button type="button" onclick="closeEditModal()" class="text-slate-400 hover:text-slate-500">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <form action="<?= $base ?>/controllers/process_assignment.php" method="POST" enctype="multipart/form-data" class="p-6 space-y-4">
+                <input type="hidden" name="action" value="edit">
+                <input type="hidden" name="assignment_id" id="edit-assignment-id">
+                <input type="hidden" name="course_id" value="<?= $selectedCourseId ?>">
+                
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Assignment Title</label>
+                    <input type="text" name="title" id="edit-title" required class="block w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm focus:border-primary p-2.5">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Description (optional)</label>
+                    <textarea name="description" id="edit-description" rows="3" class="block w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm focus:border-primary p-2.5"></textarea>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Max Marks</label>
+                        <input type="number" name="max_marks" id="edit-max-marks" required min="1" max="1000" class="block w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm focus:border-primary p-2.5">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Deadline (Extend Date & Time)</label>
+                        <input type="datetime-local" name="deadline" id="edit-deadline" required class="block w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm focus:border-primary p-2.5">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Status</label>
+                        <select name="status" id="edit-status" class="block w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm focus:border-primary p-2.5">
+                            <option value="ACTIVE">ACTIVE (Open for submissions)</option>
+                            <option value="CLOSED">CLOSED (Locked)</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center pt-6">
+                        <label class="inline-flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" name="allow_late" id="edit-allow-late" value="1" class="rounded border-slate-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                            <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Allow Late Submissions</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Replace Reference File (optional)</label>
+                    <input type="file" name="reference_file" accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.zip,.rar,.jpg,.png" class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 dark:file:bg-indigo-900/30 dark:file:text-indigo-400">
+                    <p id="edit-current-file-text" class="mt-1 text-xs text-slate-500 dark:text-slate-400"></p>
+                </div>
+
+                <div class="pt-4 flex gap-3">
+                    <button type="button" onclick="closeEditModal()" class="flex-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 py-2.5 rounded-lg font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+                        Cancel
+                    </button>
+                    <button type="submit" class="flex-1 bg-amber-600 hover:bg-amber-700 text-white py-2.5 rounded-lg font-medium transition-colors shadow-sm">
+                        Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 </main>
 
 <script>
+    function openEditModal(data) {
+        document.getElementById('edit-assignment-id').value = data.id;
+        document.getElementById('edit-title').value = data.title || '';
+        document.getElementById('edit-description').value = data.description || '';
+        document.getElementById('edit-max-marks').value = data.max_marks || 100;
+        document.getElementById('edit-deadline').value = data.deadline || '';
+        document.getElementById('edit-status').value = data.status || 'ACTIVE';
+        document.getElementById('edit-allow-late').checked = (parseInt(data.allow_late) === 1);
+        
+        const fileText = document.getElementById('edit-current-file-text');
+        if (data.reference_file) {
+            fileText.textContent = 'Current file: ' + data.reference_file + ' (uploading a new file will replace it)';
+        } else {
+            fileText.textContent = 'No reference file currently attached.';
+        }
+        
+        document.getElementById('edit-assignment-modal').classList.remove('hidden');
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    function closeEditModal() {
+        document.getElementById('edit-assignment-modal').classList.add('hidden');
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
         if (typeof lucide !== 'undefined') lucide.createIcons();
     });

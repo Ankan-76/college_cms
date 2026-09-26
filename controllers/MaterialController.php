@@ -24,16 +24,84 @@ class MaterialController {
     public function getMaterialsByCourse(int $courseId): array {
         try {
             $stmt = $this->db->prepare("
-                SELECT m.*, f.name as faculty_name 
+                SELECT m.*, f.name as faculty_name,
+                       c.course_code, c.course_name, c.department_id,
+                       d.dept_name, d.dept_code,
+                       c.semester_id, s.semester_number
                 FROM study_materials m
                 JOIN teachers f ON m.faculty_id = f.id
+                JOIN courses c ON m.course_id = c.id
+                JOIN departments d ON c.department_id = d.id
+                JOIN semesters s ON c.semester_id = s.id
                 WHERE m.course_id = ?
                 ORDER BY m.uploaded_at DESC
             ");
             $stmt->execute([$courseId]);
-            return $stmt->fetchAll();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
             error_log("DB Error fetching materials: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Get study materials with optional filtering by department, semester, and course.
+     */
+    public function getFilteredMaterials(array $allowedCourseIds, int $departmentId = 0, int $semesterId = 0, int $courseId = 0, int $facultyId = 0): array {
+        try {
+            $conditions = [];
+            $params = [];
+
+            if ($courseId > 0) {
+                $conditions[] = "m.course_id = ?";
+                $params[] = $courseId;
+            } elseif (!empty($allowedCourseIds)) {
+                $inPlaceholders = implode(',', array_fill(0, count($allowedCourseIds), '?'));
+                if ($facultyId > 0) {
+                    $conditions[] = "(m.course_id IN ($inPlaceholders) OR m.faculty_id = ?)";
+                    $params = array_merge($params, array_map('intval', $allowedCourseIds), [$facultyId]);
+                } else {
+                    $conditions[] = "m.course_id IN ($inPlaceholders)";
+                    $params = array_merge($params, array_map('intval', $allowedCourseIds));
+                }
+            } elseif ($facultyId > 0) {
+                $conditions[] = "m.faculty_id = ?";
+                $params[] = $facultyId;
+            } else {
+                return [];
+            }
+
+            if ($departmentId > 0) {
+                $conditions[] = "c.department_id = ?";
+                $params[] = $departmentId;
+            }
+
+            if ($semesterId > 0) {
+                $conditions[] = "c.semester_id = ?";
+                $params[] = $semesterId;
+            }
+
+            $whereClause = !empty($conditions) ? "WHERE " . implode(" AND ", $conditions) : "";
+
+            $sql = "
+                SELECT m.*, f.name as faculty_name, 
+                       c.course_code, c.course_name, c.department_id, 
+                       d.dept_name, d.dept_code, 
+                       c.semester_id, s.semester_number
+                FROM study_materials m
+                JOIN teachers f ON m.faculty_id = f.id
+                JOIN courses c ON m.course_id = c.id
+                JOIN departments d ON c.department_id = d.id
+                JOIN semesters s ON c.semester_id = s.id
+                $whereClause
+                ORDER BY m.uploaded_at DESC
+            ";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("DB Error fetching filtered materials: " . $e->getMessage());
             return [];
         }
     }

@@ -66,16 +66,33 @@ class AttendanceController {
     public function getFacultyCourses(int $facultyProfileId): array {
         try {
             $stmt = $this->db->prepare("
-                SELECT c.id, c.course_code, c.course_name, d.dept_name, s.semester_number
+                SELECT c.id, c.course_code, c.course_name, c.department_id, d.dept_name, d.dept_code, c.semester_id, s.semester_number
                 FROM courses c
                 JOIN course_assignments ca ON c.id = ca.course_id
                 JOIN departments d ON c.department_id = d.id
                 JOIN semesters s ON c.semester_id = s.id
                 WHERE ca.faculty_id = ?
-                ORDER BY s.semester_number ASC, c.course_name ASC
+                ORDER BY d.dept_name ASC, s.semester_number ASC, c.course_name ASC
             ");
             $stmt->execute([$facultyProfileId]);
-            return $stmt->fetchAll();
+            $courses = $stmt->fetchAll();
+
+            // Fallback: If no direct course_assignments, check courses in teacher's assigned departments
+            if (empty($courses)) {
+                $stmtFallback = $this->db->prepare("
+                    SELECT c.id, c.course_code, c.course_name, c.department_id, d.dept_name, d.dept_code, c.semester_id, s.semester_number
+                    FROM courses c
+                    JOIN departments d ON c.department_id = d.id
+                    JOIN semesters s ON c.semester_id = s.id
+                    JOIN teacher_departments td ON td.department_id = c.department_id
+                    WHERE td.teacher_id = ?
+                    ORDER BY d.dept_name ASC, s.semester_number ASC, c.course_name ASC
+                ");
+                $stmtFallback->execute([$facultyProfileId]);
+                $courses = $stmtFallback->fetchAll();
+            }
+
+            return $courses;
         } catch (PDOException $e) {
             error_log("DB Error fetching assigned courses for faculty {$facultyProfileId}: " . $e->getMessage());
             return [];

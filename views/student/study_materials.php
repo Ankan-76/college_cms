@@ -9,7 +9,7 @@ $pageTitle = 'Study Materials | Student Portal';
 
 use Config\Database;
 $db = Database::getInstance()->getConnection();
-$studentId = $_SESSION['user_id'];
+$studentId = $_SESSION['student_profile_id'] ?? $_SESSION['user_id'] ?? 0;
 
 // Get student's department and semester
 $stmtStudent = $db->prepare("SELECT department_id, semester_id FROM students WHERE id = ?");
@@ -18,16 +18,60 @@ $student = $stmtStudent->fetch();
 $departmentId = $student['department_id'] ?? 0;
 $semesterId = $student['semester_id'] ?? 0;
 
-// Fetch all study materials grouped by course
-$matStmt = $db->prepare("
-    SELECT sm.*, c.course_code, c.course_name, t.name as faculty_name
+// Fetch all courses for student's department and semester for the subject filter
+$coursesStmt = $db->prepare("
+    SELECT id, course_code, course_name 
+    FROM courses 
+    WHERE department_id = ? AND semester_id = ? 
+    ORDER BY course_code ASC
+");
+$coursesStmt->execute([$departmentId, $semesterId]);
+$courses = $coursesStmt->fetchAll();
+
+// Subject filter: default to 0 (shows all study materials)
+$selectedCourseId = isset($_GET['course_id']) && $_GET['course_id'] !== '' ? (int)$_GET['course_id'] : 0;
+$selectedCourse = null;
+if ($selectedCourseId > 0) {
+    foreach ($courses as $c) {
+        if ((int)$c['id'] === $selectedCourseId) {
+            $selectedCourse = $c;
+            break;
+        }
+    }
+    if (!$selectedCourse) {
+        $selectedCourseId = 0;
+    }
+}
+
+// Fetch total count of all study materials in student's semester
+$countStmt = $db->prepare("
+    SELECT COUNT(*) 
+    FROM study_materials sm
+    JOIN courses c ON sm.course_id = c.id
+    WHERE c.department_id = ? AND c.semester_id = ?
+");
+$countStmt->execute([$departmentId, $semesterId]);
+$totalMaterialsCount = (int)$countStmt->fetchColumn();
+
+// Fetch study materials (optionally filtered by selected subject)
+$query = "
+    SELECT sm.*, c.id as course_id, c.course_code, c.course_name, t.name as faculty_name
     FROM study_materials sm
     JOIN courses c ON sm.course_id = c.id
     LEFT JOIN teachers t ON sm.faculty_id = t.id
     WHERE c.department_id = ? AND c.semester_id = ?
-    ORDER BY c.course_code ASC, sm.uploaded_at DESC
-");
-$matStmt->execute([$departmentId, $semesterId]);
+";
+$params = [$departmentId, $semesterId];
+
+if ($selectedCourseId > 0) {
+    $query .= " AND c.id = ?";
+    $params[] = $selectedCourseId;
+}
+
+$query .= " ORDER BY c.course_code ASC, sm.uploaded_at DESC";
+
+$matStmt = $db->prepare($query);
+$matStmt->execute($params);
 $materials = $matStmt->fetchAll();
 
 // Group by course
@@ -48,17 +92,79 @@ require_once __DIR__ . '/../../includes/header.php';
                 <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
                     <i data-lucide="folder-down" class="w-6 h-6 text-indigo-500"></i> Study Materials
                 </h1>
-                <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Download study resources uploaded by your faculty. <?= count($materials) ?> total files available.</p>
+                <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                    Download study resources uploaded by your faculty.
+                    <?php if ($selectedCourseId > 0 && $selectedCourse): ?>
+                        Showing <?= count($materials) ?> <?= count($materials) === 1 ? 'file' : 'files' ?> for <strong class="text-slate-700 dark:text-slate-300"><?= htmlspecialchars($selectedCourse['course_code']) ?></strong> (<?= $totalMaterialsCount ?> total).
+                    <?php else: ?>
+                        <?= $totalMaterialsCount ?> total <?= $totalMaterialsCount === 1 ? 'file' : 'files' ?> available.
+                    <?php endif; ?>
+                </p>
             </div>
+
+            <div class="flex flex-wrap items-center gap-2">
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/60">
+                    <i data-lucide="book-open" class="w-3.5 h-3.5"></i> <?= $selectedCourse ? htmlspecialchars($selectedCourse['course_code']) : 'All Subjects' ?>
+                </span>
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/60">
+                    <i data-lucide="files" class="w-3.5 h-3.5"></i> <?= count($materials) ?> <?= count($materials) === 1 ? 'File' : 'Files' ?>
+                </span>
+            </div>
+        </div>
+
+        <!-- Filter Bar: Select Subject -->
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-4 sm:p-5 transition-all">
+            <form method="GET" action="study_materials.php" id="filter-form" class="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+                <div class="flex-1 max-w-lg">
+                    <label for="filter-course" class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5">
+                        <span class="inline-flex items-center gap-1.5">
+                            <i data-lucide="filter" class="w-3.5 h-3.5 text-indigo-500"></i>
+                            Select Subject
+                        </span>
+                    </label>
+                    <select name="course_id" id="filter-course" onchange="document.getElementById('filter-form').submit()" class="block w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 p-2.5 text-sm outline-none transition-colors">
+                        <option value="" <?= $selectedCourseId === 0 ? 'selected' : '' ?>>-- All Subjects --</option>
+                        <?php foreach ($courses as $c): ?>
+                            <option value="<?= $c['id'] ?>" <?= $selectedCourseId === (int)$c['id'] ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($c['course_code'] . ' - ' . $c['course_name']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div class="flex items-center gap-2 shrink-0">
+                    <button type="submit" class="inline-flex items-center justify-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm hover:shadow active:scale-95">
+                        <i data-lucide="search" class="w-4 h-4"></i>
+                        <span>Filter</span>
+                    </button>
+                    <a href="study_materials.php" class="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 text-sm font-semibold transition-all shadow-sm active:scale-95" title="Reset filter to all subjects">
+                        <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                        <span>Reset</span>
+                    </a>
+                </div>
+            </form>
         </div>
 
         <?php if (empty($materials)): ?>
             <div class="bg-white dark:bg-slate-800 rounded-xl p-10 text-center border border-slate-200 dark:border-slate-700 shadow-sm">
-                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-50 dark:bg-emerald-900/30 text-emerald-500 mb-4">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-700/60 text-slate-400 mb-4">
                     <i data-lucide="folder-open" class="w-8 h-8"></i>
                 </div>
-                <h3 class="text-lg font-semibold text-slate-900 dark:text-white">No Materials Available</h3>
-                <p class="text-sm text-slate-500 mt-2 max-w-sm mx-auto">No study materials have been uploaded for your courses yet.</p>
+                <h3 class="text-lg font-semibold text-slate-900 dark:text-white">No Materials Found</h3>
+                <p class="text-sm text-slate-500 dark:text-slate-400 mt-2 max-w-sm mx-auto">
+                    <?php if ($selectedCourse): ?>
+                        No study materials have been uploaded for <strong class="text-slate-700 dark:text-slate-300"><?= htmlspecialchars($selectedCourse['course_name']) ?></strong> yet.
+                    <?php else: ?>
+                        No study materials have been uploaded for your courses yet.
+                    <?php endif; ?>
+                </p>
+                <?php if ($selectedCourseId > 0): ?>
+                    <div class="mt-4">
+                        <a href="study_materials.php" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-indigo-50 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300 hover:bg-indigo-100 transition-colors">
+                            <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> Show All Subjects
+                        </a>
+                    </div>
+                <?php endif; ?>
             </div>
         <?php else: ?>
             <?php foreach ($groupedMaterials as $courseCode => $group): 

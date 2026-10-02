@@ -22,6 +22,7 @@
   - [4.2 Faculty Portal & Modern Faculty Dashboard](#42-faculty-portal--modern-faculty-dashboard)
   - [4.3 Student Portal & Modern Academic Dashboard](#43-student-portal--modern-academic-dashboard)
   - [4.4 Public & Prospective Student Features](#44-public--prospective-student-features)
+  - [4.5 Unified Responsive Navigation & Mobile Header Engine](#45-unified-responsive-navigation--mobile-header-engine)
 - [5. Advanced Communication & Messaging Engine](#5-advanced-communication--messaging-engine)
 - [6. Security & Integrity Framework](#6-security--integrity-framework)
 - [7. Database Schema & Data Modeling](#7-database-schema--data-modeling)
@@ -106,7 +107,7 @@ graph TD
 | **Database** | **MariaDB 10.4+ / MySQL 8.0+** (InnoDB Engine) | Relational persistence, JSON-enabled schemas, ACID compliance |
 | **Database Abstraction** | **PHP Data Objects (PDO)** | Secure parameterized abstraction layer |
 | **Frontend Framework** | **HTML5, TailwindCSS, Vanilla JS** | Modern, responsive, utility-driven UI with Dark/Light theme mode |
-| **Responsive Architecture** | **Mobile-First CSS Grid & Flexbox** | Multi-device layout adapting seamlessly from 320px mobile viewports to desktop |
+| **Responsive Architecture** | **Mobile-First CSS Grid & Flexbox** | Multi-device layout adapting seamlessly from 320px mobile viewports to desktop with strict avatar aspect-ratio preservation |
 | **Typography & Icons** | **Google Fonts (Inter)**, **Lucide Icons** | High-density interface iconography and accessible typography |
 | **Data Visualization** | **Chart.js** | Interactive graphical attendance, admissions, and grade distribution charts |
 | **Document Viewer** | **In-Browser Modal Viewer (`iframe`)** | Instant preview of PDFs, text files, and images without forced downloads |
@@ -199,6 +200,8 @@ The Faculty Portal provides educators with an intuitive digital workstation to m
 - **Online Quiz Engine:** Build timed quizzes with auto-scoring multiple-choice questions, shuffle logic, answer explanations, and automated grade posting.
 - **Digital Study Materials & Edit Suite (`study_materials.php`):** 
   - Upload syllabi, presentation decks, lecture notes, and reference documents.
+  - **Upload Modal Subject Default:** Defaults strictly to `"-- Select Subject --"` to ensure instructors intentionally select the target course before submission, preventing accidental uploads to pre-selected courses.
+  - **Cascading Filter Bar & Dedicated Reset:** 3-tier cascade filtering (Department → Semester → Subject Name) equipped with a dedicated **Reset** button to instantly clear filters back to default.
   - Integrated in-page **Document Viewer Modal** (`iframe`) and full-screen new-tab preview to inspect materials directly in the browser without forced downloads.
   - Dedicated **Edit Study Material** modal allowing instructors to update titles, reassign course subjects, and replace files with automatic disk cleanup of orphaned documents.
 
@@ -255,8 +258,10 @@ The Student Portal empowers learners with self-service academic tracking, lectur
 - **Coursework Management & Sent Work Viewer (`assignments.php`):**
   - Track active assignments, deadlines, late submission flags, and maximum marks.
   - Integrated **Sent Submission Viewer**: After submitting coursework, students can view their sent document, verify exact submission timestamp, check grading status (`SUBMITTED`, `GRADED`, `LATE`), view marks awarded vs maximum score, and read qualitative feedback remarks from their instructor.
-- **Interactive Study Materials Hub (`study_materials.php`):**
+- **Interactive Study Materials Hub & Subject Filter (`study_materials.php`):**
   - Access teacher-uploaded lecture notes, syllabi, and reference materials.
+  - **Subject Filter & Dedicated Reset:** Dynamically filter study materials by enrolled course or display all courses by default (`-- All Subjects --`). Includes an instant **Reset** button to quickly clear filters back to the full overview.
+  - **Context-Aware Empty States:** Contextual empty state notification with 1-click **Reset Filter** CTA when no resources have been uploaded for a selected subject yet.
   - **In-Browser Document Viewer Modal:** Embedded iframe preview for PDF documents, text files, and images without forcing downloads.
   - Full-screen viewer, open in new tab, and direct download buttons with responsive mobile full-width action bars.
 - **Attendance Tracking & 2×2 Mobile Grid (`my_attendance.php`):**
@@ -276,6 +281,17 @@ The Student Portal empowers learners with self-service academic tracking, lectur
 - **Admission Inquiries:** Prospective students can submit admission inquiries via the public landing page, detailing their target program, past qualifications, and questions.
 - **Public Feedback:** Visitors and alumni can leave institutional feedback across categorized themes with 1–5 star ratings.
 - **Public Noticeboard:** Urgent campus announcements and admissions notices are accessible directly from the landing page.
+
+---
+
+### 4.5 Unified Responsive Navigation & Mobile Header Engine
+All three portals (Admin, Faculty, and Student) share a unified, mobile-first responsive header (`includes/header.php`) engineered to ensure zero visual distortion across all mobile viewport widths (down to 320px):
+
+- **Strict 1:1 Avatar Aspect-Ratio Integrity:** Employs explicit `.avatar-img` styling with `aspect-ratio: 1 / 1 !important; flex-shrink: 0 !important; min-width: 2rem; min-height: 2rem;` wrapped in a circular container (`w-8 h-8 sm:w-9 sm:h-9 shrink-0 aspect-square rounded-full overflow-hidden`). This completely eliminates horizontal profile picture distortion/squishing caused by flexbox compression on narrow smartphone displays.
+- **Dual-Layer Fail-Safe Avatar System:** Dynamically computes the user's uppercase initials (`AB`, `JD`, etc.) in PHP. If the remote UI avatar or profile image cannot be loaded or is delayed by network latency, an inline `onerror` trigger seamlessly switches to the high-contrast CSS initials avatar with zero layout shift.
+- **Adaptive Horizontal Spacing & Heights:** Outer container padding scales cleanly (`px-3 sm:px-6 lg:px-8`), header height adjusts (`h-14 sm:h-16`), and internal flex gaps dynamically contract (`gap-1.5 sm:gap-2.5 md:gap-3.5`) to accommodate all action items without crowding.
+- **Responsive Mobile Action Buttons:** The logout control adapts as a compact `p-2` icon-only button on mobile and expands to a labeled button (`Log Out`) on tablet and desktop screens (`hidden md:inline`).
+- **Role-Aware Quick Navigation:** The branded `CMS` mobile logo and `GreenField College` desktop logo dynamically route back to the authenticated user's corresponding dashboard (`/views/admin/dashboard.php`, `/views/faculty/dashboard.php`, or `/views/student/dashboard.php`).
 
 ---
 
@@ -475,7 +491,7 @@ college_cms/
 │   ├── auth_middleware.php          # Session verification (`require_auth`, `require_role`)
 │   ├── csrf.php                     # CSRF token generation and validation helpers
 │   ├── footer.php                   # Portal standard footer & JS inclusions
-│   ├── header.php                   # HTML5 head, Tailwind CDN, Lucide icons, Dark theme
+│   ├── header.php                   # Mobile-responsive header, anti-squish avatar, Lucide icons, Dark theme
 │   ├── helpers.php                  # Global helpers (`sanitize`, `redirect`, `flash`)
 │   ├── main_footer.php              # Public landing page footer
 │   ├── permission_middleware.php    # Granular RBAC validation (`require_permission`)
@@ -487,9 +503,10 @@ college_cms/
 ├── views/                           # Presentation Layer (Organized by Portal)
 │   ├── admin/                       # 50+ administrative management pages
 │   ├── auth/                        # Role-specific login pages, OTP, password reset
-│   ├── faculty/                     # Next-gen faculty workstation, attendance, assignment editing, grading suite & quizzes
-│   └── student/                     # Mobile-first responsive student portal, sent work tracker, in-browser doc viewer & grades
+│   ├── faculty/                     # Faculty workstation, study materials default selection & filters, assignments & grading
+│   └── student/                     # Mobile-first student portal, study materials subject filter & reset, sent work tracker & grades
 ├── database.sql                     # Complete MariaDB database dump with seed data
+├── feedback.php                     # Public institutional feedback submission form
 ├── index.php                        # Application entry point, router & public landing page
 ├── manifest.json                    # Progressive Web App manifest configuration
 ├── sw.js                            # Service Worker for offline asset caching

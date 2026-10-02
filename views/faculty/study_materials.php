@@ -207,7 +207,7 @@ $materials = $materialCtrl->getFilteredMaterials($facultyCourseIds, $selectedDep
                 </div>
 
                 <!-- Step 3: Select Subject Name -->
-                <div class="lg:col-span-4">
+                <div class="lg:col-span-3">
                     <label for="filter-course" class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5">
                         <span class="inline-flex items-center gap-1.5">
                             <span class="w-4 h-4 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-[10px] font-extrabold">3</span>
@@ -232,16 +232,15 @@ $materials = $materialCtrl->getFilteredMaterials($facultyCourseIds, $selectedDep
                 </div>
 
                 <!-- Action Buttons -->
-                <div class="lg:col-span-1 flex gap-2">
-                    <button type="submit" class="w-full inline-flex items-center justify-center gap-1 bg-indigo-600 hover:bg-indigo-700 text-white p-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm hover:shadow focus:ring-2 focus:ring-indigo-500" title="Apply Filter">
+                <div class="lg:col-span-2 flex gap-2">
+                    <button type="submit" class="flex-1 inline-flex items-center justify-center gap-1 bg-indigo-600 hover:bg-indigo-700 text-white p-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm hover:shadow focus:ring-2 focus:ring-indigo-500 active:scale-95" title="Apply Filter">
                         <i data-lucide="search" class="w-4 h-4"></i>
-                        <span class="lg:hidden text-xs">Filter</span>
+                        <span>Filter</span>
                     </button>
-                    <?php if ($selectedCourseId > 0 || $selectedDepartmentId > 0 || $selectedSemesterId > 0): ?>
-                    <a href="study_materials.php" class="inline-flex items-center justify-center p-2.5 rounded-xl border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors" title="Reset Filters">
+                    <a href="study_materials.php" class="flex-1 inline-flex items-center justify-center gap-1 p-2.5 rounded-xl border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 text-sm font-semibold transition-colors active:scale-95" title="Reset all filters">
                         <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                        <span>Reset</span>
                     </a>
-                    <?php endif; ?>
                 </div>
             </form>
         </div>
@@ -413,9 +412,9 @@ $materials = $materialCtrl->getFilteredMaterials($facultyCourseIds, $selectedDep
                         Subject Name <span class="text-rose-500">*</span>
                     </label>
                     <select name="course_id" id="upload-course-id" required class="block w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 p-2.5 text-sm outline-none">
-                        <option value="">-- Select Subject --</option>
+                        <option value="" selected>-- Select Subject --</option>
                         <?php foreach ($courses as $course): ?>
-                            <option value="<?= $course['id'] ?>" <?= $selectedCourseId === (int)$course['id'] ? 'selected' : '' ?>>
+                            <option value="<?= $course['id'] ?>">
                                 <?= htmlspecialchars($course['course_code'] . ' - ' . $course['course_name']) ?> (Sem <?= htmlspecialchars((string)$course['semester_number']) ?>)
                             </option>
                         <?php endforeach; ?>
@@ -690,13 +689,18 @@ $materials = $materialCtrl->getFilteredMaterials($facultyCourseIds, $selectedDep
     function openUploadModal() {
         const currentDeptId = document.getElementById('filter-department')?.value || '';
         const currentSemId = document.getElementById('filter-semester')?.value || '';
-        const currentCourseId = document.getElementById('filter-course')?.value || '';
 
         const modalDept = document.getElementById('upload-department-id');
         if (modalDept && currentDeptId) {
             modalDept.value = currentDeptId;
         }
-        filterUploadCourses(currentSemId, currentCourseId);
+        // Always default to "-- Select Subject --" when adding study material
+        filterUploadCourses(currentSemId, null);
+
+        const courseSelect = document.getElementById('upload-course-id');
+        if (courseSelect) {
+            courseSelect.value = '';
+        }
 
         document.getElementById('upload-modal').classList.remove('hidden');
         if (typeof lucide !== 'undefined') lucide.createIcons();
@@ -710,7 +714,7 @@ $materials = $materialCtrl->getFilteredMaterials($facultyCourseIds, $selectedDep
 
         const deptId = parseInt(deptSelect.value) || 0;
         const targetSemId = keepSemId !== null ? parseInt(keepSemId) : (parseInt(semSelect.value) || 0);
-        const targetCourseId = keepCourseId !== null ? parseInt(keepCourseId) : (parseInt(courseSelect.value) || 0);
+        const targetCourseId = keepCourseId !== null ? parseInt(keepCourseId) : 0;
 
         let matching = facultyCourses;
         if (deptId > 0) {
@@ -725,7 +729,7 @@ $materials = $materialCtrl->getFilteredMaterials($facultyCourseIds, $selectedDep
             finalCourses = finalCourses.filter(c => parseInt(c.semester_id) === activeSemId);
         }
 
-        courseSelect.innerHTML = '<option value="">-- Select Subject --</option>';
+        courseSelect.innerHTML = '<option value="" selected>-- Select Subject --</option>';
         if (finalCourses.length === 0) {
             const opt = document.createElement('option');
             opt.value = '';
@@ -737,11 +741,15 @@ $materials = $materialCtrl->getFilteredMaterials($facultyCourseIds, $selectedDep
                 const opt = document.createElement('option');
                 opt.value = c.id;
                 opt.textContent = `${c.course_code} - ${c.course_name} (Sem ${c.semester_number})`;
-                if (parseInt(c.id) === targetCourseId || finalCourses.length === 1) {
+                if (targetCourseId > 0 && parseInt(c.id) === targetCourseId) {
                     opt.selected = true;
                 }
                 courseSelect.appendChild(opt);
             });
+        }
+
+        if (!targetCourseId) {
+            courseSelect.value = '';
         }
     }
 

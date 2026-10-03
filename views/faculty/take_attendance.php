@@ -12,13 +12,86 @@ require_once __DIR__ . '/../../controllers/AttendanceController.php';
 use Controllers\AttendanceController;
 
 $controller = new AttendanceController();
-$courses = $controller->getFacultyCourses($_SESSION['faculty_profile_id']);
+$facultyId = $_SESSION['faculty_profile_id'] ?? $_SESSION['user_id'];
+$courses = $controller->getFacultyCourses($facultyId);
+
+// Build distinct departments and semesters from faculty's courses
+$departments = [];
+$semesters = [];
+foreach ($courses as $c) {
+    $deptId = (int)($c['department_id'] ?? 0);
+    if ($deptId > 0 && !isset($departments[$deptId])) {
+        $departments[$deptId] = [
+            'id' => $deptId,
+            'dept_name' => $c['dept_name'] ?? 'Department ' . $deptId,
+            'dept_code' => $c['dept_code'] ?? 'DEPT'
+        ];
+    }
+    $semId = (int)($c['semester_id'] ?? 0);
+    if ($semId > 0 && !isset($semesters[$semId])) {
+        $semesters[$semId] = [
+            'id' => $semId,
+            'semester_number' => (int)($c['semester_number'] ?? 1)
+        ];
+    }
+}
+
+// Fallback to database if empty
+if (empty($departments)) {
+    try {
+        $db = \Config\Database::getInstance()->getConnection();
+        $allDeptsStmt = $db->query("SELECT id, dept_name, dept_code FROM departments ORDER BY dept_name ASC");
+        while ($d = $allDeptsStmt->fetch(PDO::FETCH_ASSOC)) {
+            $departments[(int)$d['id']] = $d;
+        }
+    } catch (Exception $e) {}
+}
+if (empty($semesters)) {
+    try {
+        $db = \Config\Database::getInstance()->getConnection();
+        $allSemsStmt = $db->query("SELECT id, semester_number FROM semesters ORDER BY semester_number ASC");
+        while ($s = $allSemsStmt->fetch(PDO::FETCH_ASSOC)) {
+            $semesters[(int)$s['id']] = $s;
+        }
+    } catch (Exception $e) {}
+}
+
+uasort($departments, fn($a, $b) => strcmp($a['dept_name'], $b['dept_name']));
+uasort($semesters, fn($a, $b) => $a['semester_number'] <=> $b['semester_number']);
 
 // Filters
-$selectedCourseId = isset($_GET['course_id']) ? (int)$_GET['course_id'] : null;
+$selectedDepartmentId = isset($_GET['department_id']) && $_GET['department_id'] !== '' ? (int)$_GET['department_id'] : 0;
+$selectedSemesterId = isset($_GET['semester_id']) && $_GET['semester_id'] !== '' ? (int)$_GET['semester_id'] : 0;
+$selectedCourseId = isset($_GET['course_id']) && $_GET['course_id'] !== '' ? (int)$_GET['course_id'] : null;
 $selectedDate = isset($_GET['date']) ? htmlspecialchars($_GET['date']) : date('Y-m-d');
-$students = [];
 
+// If a specific course_id was passed, infer department and semester if not given
+if ($selectedCourseId) {
+    foreach ($courses as $c) {
+        if ((int)$c['id'] === $selectedCourseId) {
+            if ($selectedDepartmentId === 0) {
+                $selectedDepartmentId = (int)$c['department_id'];
+            }
+            if ($selectedSemesterId === 0) {
+                $selectedSemesterId = (int)$c['semester_id'];
+            }
+            break;
+        }
+    }
+}
+
+// Find selected course metadata if a specific course was chosen
+$selectedCourse = null;
+if ($selectedCourseId) {
+    foreach ($courses as $c) {
+        if ((int)$c['id'] === $selectedCourseId) {
+            $selectedCourse = $c;
+            break;
+        }
+    }
+}
+
+$students = [];
 if ($selectedCourseId) {
     $students = $controller->getStudentsForCourse($selectedCourseId, $selectedDate);
 }
@@ -36,12 +109,9 @@ if ($selectedCourseId) {
             </div>
             
             <div class="flex gap-2 shrink-0">
-                <a href="view_attendance.php" class="inline-flex items-center gap-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 px-4 py-2 border border-indigo-200 dark:border-indigo-800 rounded-lg text-sm font-medium hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-all hover:-translate-y-0.5 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-slate-900">
+                <a href="view_attendance.php<?= $selectedCourseId ? '?course_id=' . $selectedCourseId . ($selectedDepartmentId ? '&department_id=' . $selectedDepartmentId : '') . ($selectedSemesterId ? '&semester_id=' . $selectedSemesterId : '') : '' ?>" class="inline-flex items-center gap-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 px-4 py-2 border border-indigo-200 dark:border-indigo-800 rounded-lg text-sm font-medium hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-all hover:-translate-y-0.5 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-slate-900">
                     <i data-lucide="eye" class="w-4 h-4"></i> View Attendance
                 </a>
-                <button type="button" class="inline-flex items-center gap-2 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-all hover:-translate-y-0.5 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-slate-900">
-                    <i data-lucide="download" class="w-4 h-4"></i> Export CSV
-                </button>
             </div>
         </div>
 
@@ -62,30 +132,122 @@ if ($selectedCourseId) {
             <?php unset($_SESSION['flash_error']); ?>
         <?php endif; ?>
 
-        <!-- Filter Card / Context Setup -->
-        <div class="bg-white dark:bg-[rgba(30,41,59,0.8)] glassmorphism rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-5 transform transition-all">
-            <form method="GET" class="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
-                <div>
-                    <label for="course_id" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Assigned Course</label>
-                    <select id="course_id" name="course_id" required class="block w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm focus:border-primary focus:ring-primary focus:ring-2 sm:text-sm p-2.5 outline-none transition-colors">
-                        <option value="">-- Select a subject --</option>
-                        <?php foreach ($courses as $course): ?>
-                            <option value="<?= $course['id'] ?>" <?= $selectedCourseId === $course['id'] ? 'selected' : '' ?>>
-                                <?= htmlspecialchars($course['course_code'] . ' - ' . $course['course_name']) ?> (Sem <?= htmlspecialchars((string)$course['semester_number']) ?>)
+        <!-- Filter Card: Step 1: Department -> Step 2: Semester -> Step 3: Subject -> Step 4: Lecture Date -->
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-5 transform transition-all">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3.5 mb-4 border-b border-slate-100 dark:border-slate-700/60">
+                <div class="flex items-center gap-2">
+                    <div class="p-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
+                        <i data-lucide="sliders-horizontal" class="w-4 h-4"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-sm font-bold text-slate-900 dark:text-white">Attendance Roster Setup</h2>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Filter department and semester before selecting subject</p>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2">
+                    <?php if ($selectedDepartmentId > 0 && isset($departments[$selectedDepartmentId])): ?>
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/60">
+                        <i data-lucide="building-2" class="w-3 h-3"></i> <?= htmlspecialchars($departments[$selectedDepartmentId]['dept_code'] ?? $departments[$selectedDepartmentId]['dept_name']) ?>
+                    </span>
+                    <?php endif; ?>
+                    <?php if ($selectedSemesterId > 0): ?>
+                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300">
+                        <i data-lucide="calendar" class="w-3 h-3"></i> Sem <?= htmlspecialchars((string)($semesters[$selectedSemesterId]['semester_number'] ?? $selectedSemesterId)) ?>
+                    </span>
+                    <?php endif; ?>
+                    <?php if ($selectedCourse): ?>
+                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-50 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 border border-purple-200/60 dark:border-purple-800/60">
+                        <i data-lucide="book-open" class="w-3 h-3"></i> <?= htmlspecialchars($selectedCourse['course_code']) ?>
+                    </span>
+                    <?php endif; ?>
+                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/60">
+                        <i data-lucide="calendar-check" class="w-3 h-3"></i> <?= date('M d, Y', strtotime($selectedDate)) ?>
+                    </span>
+                </div>
+            </div>
+
+            <form method="GET" action="take_attendance.php" id="attendance-filter-form" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4 items-end">
+                <!-- Step 1: Department -->
+                <div class="lg:col-span-3">
+                    <label for="filter-department" class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5">
+                        <span class="inline-flex items-center gap-1.5">
+                            <span class="w-4 h-4 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-[10px] font-extrabold">1</span>
+                            Department
+                        </span>
+                    </label>
+                    <select id="filter-department" name="department_id" onchange="onFilterDepartmentChange()" class="block w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 p-2.5 text-sm outline-none transition-colors">
+                        <option value="">-- All Departments --</option>
+                        <?php foreach ($departments as $dept): ?>
+                            <option value="<?= $dept['id'] ?>" <?= $selectedDepartmentId === (int)$dept['id'] ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($dept['dept_name']) ?> (<?= htmlspecialchars($dept['dept_code']) ?>)
                             </option>
                         <?php endforeach; ?>
                     </select>
                 </div>
-                
-                <div>
-                    <label for="date" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Lecture Date</label>
-                    <input type="date" id="date" name="date" value="<?= $selectedDate ?>" required max="<?= date('Y-m-d') ?>" class="block w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm focus:border-primary focus:ring-primary focus:ring-2 sm:text-sm p-2.5 outline-none transition-colors">
+
+                <!-- Step 2: Semester -->
+                <div class="lg:col-span-2">
+                    <label for="filter-semester" class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5">
+                        <span class="inline-flex items-center gap-1.5">
+                            <span class="w-4 h-4 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-[10px] font-extrabold">2</span>
+                            Semester
+                        </span>
+                    </label>
+                    <select id="filter-semester" name="semester_id" onchange="onFilterSemesterChange()" class="block w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 p-2.5 text-sm outline-none transition-colors">
+                        <option value="">-- All Semesters --</option>
+                        <?php foreach ($semesters as $sem): ?>
+                            <option value="<?= $sem['id'] ?>" <?= $selectedSemesterId === (int)$sem['id'] ? 'selected' : '' ?>>
+                                Semester <?= htmlspecialchars((string)$sem['semester_number']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
                 </div>
-                
-                <div>
-                    <button type="submit" class="w-full bg-primary hover:bg-indigo-700 text-white font-medium py-2.5 px-4 rounded-lg transform transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-primary flex items-center justify-center gap-2">
-                        <i data-lucide="search" class="w-4 h-4"></i> Load Roster
+
+                <!-- Step 3: Subject -->
+                <div class="lg:col-span-3">
+                    <label for="course_id" class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5">
+                        <span class="inline-flex items-center gap-1.5">
+                            <span class="w-4 h-4 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-[10px] font-extrabold">3</span>
+                            Subject
+                        </span>
+                    </label>
+                    <select id="course_id" name="course_id" required class="block w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 p-2.5 text-sm outline-none transition-colors">
+                        <option value="">-- Select a subject --</option>
+                        <?php foreach ($courses as $course): ?>
+                            <?php 
+                                $deptMatch = ($selectedDepartmentId === 0 || (int)$course['department_id'] === $selectedDepartmentId);
+                                $semMatch = ($selectedSemesterId === 0 || (int)$course['semester_id'] === $selectedSemesterId);
+                                if ($deptMatch && $semMatch):
+                            ?>
+                            <option value="<?= $course['id'] ?>" <?= $selectedCourseId === (int)$course['id'] ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($course['course_code'] . ' - ' . $course['course_name']) ?> (Sem <?= htmlspecialchars((string)$course['semester_number']) ?>)
+                            </option>
+                            <?php endif; ?>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <!-- Step 4: Lecture Date -->
+                <div class="lg:col-span-2">
+                    <label for="date" class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5">
+                        <span class="inline-flex items-center gap-1.5">
+                            <i data-lucide="calendar" class="w-3.5 h-3.5 text-indigo-500"></i>
+                            Lecture Date
+                        </span>
+                    </label>
+                    <input type="date" id="date" name="date" value="<?= $selectedDate ?>" required max="<?= date('Y-m-d') ?>" class="block w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 p-2.5 text-sm outline-none transition-colors">
+                </div>
+
+                <!-- Action Buttons: Load Roster & Reset -->
+                <div class="lg:col-span-2 flex items-center gap-2">
+                    <button type="submit" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-3 rounded-xl text-sm transition-all hover:shadow hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 flex items-center justify-center gap-1.5 shrink-0">
+                        <i data-lucide="users" class="w-4 h-4"></i>
+                        <span>Load Roster</span>
                     </button>
+                    <a href="take_attendance.php" title="Reset Filters" class="p-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 rounded-xl transition-colors shrink-0 flex items-center justify-center">
+                        <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                    </a>
                 </div>
             </form>
         </div>
@@ -125,6 +287,8 @@ if ($selectedCourseId) {
                         <input type="hidden" name="csrf_token" value="dummy_csrf_token_for_demo">
                         <input type="hidden" name="course_id" value="<?= htmlspecialchars((string)$selectedCourseId) ?>">
                         <input type="hidden" name="date" value="<?= htmlspecialchars($selectedDate) ?>">
+                        <input type="hidden" name="department_id" value="<?= htmlspecialchars((string)$selectedDepartmentId) ?>">
+                        <input type="hidden" name="semester_id" value="<?= htmlspecialchars((string)$selectedSemesterId) ?>">
                         
                         <div class="overflow-x-auto">
                             <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
@@ -185,6 +349,17 @@ if ($selectedCourseId) {
                     </form>
                 </div>
             <?php endif; ?>
+        <?php else: ?>
+            <!-- Clean Prompt State when no course selected yet -->
+            <div class="bg-white dark:bg-slate-800 rounded-2xl p-12 text-center border border-slate-200/80 dark:border-slate-700 shadow-sm animate-fade-in">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 mb-4 shadow-inner">
+                    <i data-lucide="clipboard-check" class="w-8 h-8"></i>
+                </div>
+                <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-1">Select a Subject to Mark Attendance</h3>
+                <p class="text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto">
+                    Filter by Department and Semester above, choose your assigned subject, and click <strong>Load Roster</strong> to start marking daily attendance.
+                </p>
+            </div>
         <?php endif; ?>
 
     </div>
@@ -202,6 +377,97 @@ if ($selectedCourseId) {
 </style>
 
 <script>
+    const facultyCourses = <?= json_encode($courses) ?>;
+    const allDepartments = <?= json_encode(array_values($departments)) ?>;
+    const allSemesters = <?= json_encode(array_values($semesters)) ?>;
+
+    function onFilterDepartmentChange() {
+        const deptSelect = document.getElementById('filter-department');
+        const semSelect = document.getElementById('filter-semester');
+        const courseSelect = document.getElementById('course_id');
+        if (!deptSelect || !semSelect || !courseSelect) return;
+
+        const deptId = parseInt(deptSelect.value) || 0;
+        const currentCourseId = parseInt(courseSelect.value) || 0;
+
+        let filtered = facultyCourses;
+        if (deptId > 0) {
+            filtered = filtered.filter(c => parseInt(c.department_id) === deptId);
+        }
+
+        updateSemesterSelect(semSelect, filtered, parseInt(semSelect.value) || 0);
+        updateCourseSelect(courseSelect, filtered, parseInt(semSelect.value) || 0, currentCourseId);
+    }
+
+    function onFilterSemesterChange() {
+        const deptSelect = document.getElementById('filter-department');
+        const semSelect = document.getElementById('filter-semester');
+        const courseSelect = document.getElementById('course_id');
+        if (!deptSelect || !semSelect || !courseSelect) return;
+
+        const deptId = parseInt(deptSelect.value) || 0;
+        const semId = parseInt(semSelect.value) || 0;
+        const currentCourseId = parseInt(courseSelect.value) || 0;
+
+        let filtered = facultyCourses;
+        if (deptId > 0) {
+            filtered = filtered.filter(c => parseInt(c.department_id) === deptId);
+        }
+
+        updateCourseSelect(courseSelect, filtered, semId, currentCourseId);
+    }
+
+    function updateSemesterSelect(selectEl, coursesList, preselectedSemId = 0) {
+        if (!selectEl) return;
+        const availableSemIds = new Set(coursesList.map(c => parseInt(c.semester_id)));
+
+        selectEl.innerHTML = '<option value="">-- All Semesters --</option>';
+        allSemesters.forEach(s => {
+            const semId = parseInt(s.id);
+            if (coursesList.length === 0 || availableSemIds.has(semId)) {
+                const opt = document.createElement('option');
+                opt.value = semId;
+                opt.textContent = 'Semester ' + s.semester_number;
+                if (semId === preselectedSemId) opt.selected = true;
+                selectEl.appendChild(opt);
+            }
+        });
+    }
+
+    function updateCourseSelect(selectEl, coursesList, filterSemId, preselectedCourseId = 0) {
+        if (!selectEl) return;
+        let filtered = coursesList;
+        if (filterSemId > 0) {
+            filtered = filtered.filter(c => parseInt(c.semester_id) === filterSemId);
+        }
+
+        selectEl.innerHTML = '<option value="">-- Select a subject --</option>';
+        if (filtered.length === 0) {
+            const opt = document.createElement('option');
+            opt.value = '';
+            opt.textContent = 'No courses assigned in this scope';
+            opt.disabled = true;
+            selectEl.appendChild(opt);
+            return;
+        }
+
+        let isSelectedValid = false;
+        filtered.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.id;
+            opt.textContent = `${c.course_code} - ${c.course_name} (Sem ${c.semester_number})`;
+            if (parseInt(c.id) === preselectedCourseId) {
+                opt.selected = true;
+                isSelectedValid = true;
+            }
+            selectEl.appendChild(opt);
+        });
+
+        if (!isSelectedValid && preselectedCourseId > 0) {
+            selectEl.value = '';
+        }
+    }
+
     // UX Interactivity and mock-AJAX submission for demo
     document.addEventListener('DOMContentLoaded', () => {
         const form = document.getElementById('attendance-form');

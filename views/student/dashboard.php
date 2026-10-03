@@ -152,7 +152,7 @@ $quizStmt = $db->prepare("
     FROM quizzes q
     JOIN courses c ON q.course_id = c.id
     LEFT JOIN quiz_attempts qa ON q.id = qa.quiz_id AND qa.student_id = ?
-    WHERE c.department_id = ? AND c.semester_id = ? AND q.status = 'PUBLISHED'
+    WHERE c.department_id = ? AND c.semester_id = ? AND (q.status = 'PUBLISHED' OR (q.status = 'CLOSED' AND qa.id IS NOT NULL))
     ORDER BY q.end_time ASC
 ");
 $quizStmt->execute([$studentId, $departmentId, $semesterId]);
@@ -165,7 +165,7 @@ $availableQuizzesList = [];
 foreach ($allQuizzes as $qz) {
     if (!empty($qz['attempt_id'])) {
         $attemptedQuizzesCount++;
-    } else {
+    } elseif ($qz['status'] === 'PUBLISHED') {
         $availableQuizzesList[] = $qz;
     }
 }
@@ -288,6 +288,7 @@ foreach ($subjectAttendanceList as $sub) {
     $attDetails[] = [
         'code' => $sub['course_code'],
         'name' => $sub['course_name'],
+        'credits' => $sub['credits'] ?? '',
         'total' => $subTotal,
         'present' => $subPres,
         'late' => (int)$sub['late_count'],
@@ -742,7 +743,26 @@ require_once __DIR__ . '/../../includes/header.php';
                     </div>
                 </div>
 
-                <div class="relative flex-1 min-h-[280px] w-full flex items-center justify-center">
+                <!-- Visual indicators & Link -->
+                <div class="flex flex-wrap items-center gap-2 mb-4 pb-2 border-b border-slate-100 dark:border-slate-700/60">
+                    <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-200/60 dark:border-emerald-800/40">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> &ge;75% Safe
+                    </span>
+                    <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded-full border border-amber-200/60 dark:border-amber-800/40">
+                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> 50-74% Alert
+                    </span>
+                    <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/40 px-2 py-0.5 rounded-full border border-rose-200/60 dark:border-rose-800/40">
+                        <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span> &lt;50% Low
+                    </span>
+                    <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700/60 px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-600">
+                        <span class="w-2.5 border-t-2 border-dashed border-amber-500"></span> 75% Target
+                    </span>
+                    <a href="<?= $base ?>/views/student/my_attendance.php" class="ml-auto text-xs font-bold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 flex items-center gap-1 hover:underline">
+                        Detailed Analytics <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+                    </a>
+                </div>
+
+                <div class="relative w-full h-[280px]">
                     <canvas id="studentAttendanceChart"></canvas>
                 </div>
             </div>
@@ -771,7 +791,7 @@ require_once __DIR__ . '/../../includes/header.php';
                     </div>
                 </div>
 
-                <div class="relative flex-1 min-h-[280px] w-full flex items-center justify-center">
+                <div class="relative w-full h-[280px]">
                     <canvas id="studentPerformanceChart"></canvas>
                 </div>
             </div>
@@ -1211,17 +1231,29 @@ require_once __DIR__ . '/../../includes/header.php';
 }
 </style>
 
-<script src="<?= $base ?>/assets/js/charts.js"></script>
+<script src="<?= $base ?>/assets/js/charts.js?v=<?= filemtime(__DIR__ . '/../../assets/js/charts.js') ?>"></script>
 <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        if (typeof initStudentCharts === 'function') {
-            initStudentCharts();
+    (function() {
+        function launchStudentCharts() {
+            if (typeof Chart === 'undefined') {
+                setTimeout(launchStudentCharts, 60);
+                return;
+            }
+            if (typeof initStudentCharts === 'function') {
+                initStudentCharts();
+            }
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
         }
-        
-        if (typeof lucide !== 'undefined') {
-            lucide.createIcons();
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', launchStudentCharts);
+        } else {
+            launchStudentCharts();
         }
-    });
+        window.addEventListener('load', launchStudentCharts);
+    })();
 </script>
 
 <?php require_once __DIR__ . '/../../includes/footer.php'; ?>

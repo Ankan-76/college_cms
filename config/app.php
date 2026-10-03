@@ -3,6 +3,9 @@
 define('APP_NAME', 'College Management System');
 define('BASE_URL', '/college_cms'); // Assuming served locally from xampp/htdocs
 
+// Set application timezone to match local server/user time
+date_default_timezone_set('Asia/Kolkata');
+
 // Define application-wide secure configurations
 ini_set('session.cookie_httponly', '1');
 ini_set('session.use_only_cookies', '1');

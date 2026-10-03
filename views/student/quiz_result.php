@@ -21,23 +21,174 @@ if (!$quiz || !$attempt) {
     exit;
 }
 
-$pageTitle = htmlspecialchars($quiz['title']) . ' — Result | Student Portal';
-require_once __DIR__ . '/../../includes/header.php';
-
-$questions = $quizCtrl->getQuizQuestions($quizId);
-$answers = json_decode($attempt['answers'], true) ?? [];
+$canViewResult = $quizCtrl->canViewResults($quiz);
 $base = defined('BASE_URL') ? BASE_URL : '/college_cms';
 
-$pct = $attempt['total_marks'] > 0 ? round(($attempt['score'] / $attempt['total_marks']) * 100, 1) : 0;
-$pctColor = $pct >= 75 ? 'emerald' : ($pct >= 40 ? 'amber' : 'rose');
-$mins = floor($attempt['time_taken_seconds'] / 60);
-$secs = $attempt['time_taken_seconds'] % 60;
-$showResults = $quiz['show_results'];
+$hasEndTime = !empty($quiz['end_time']) && $quiz['end_time'] !== '0000-00-00 00:00:00';
+$mins = floor((int)$attempt['time_taken_seconds'] / 60);
+$secs = (int)$attempt['time_taken_seconds'] % 60;
+
+$pageTitle = htmlspecialchars($quiz['title']) . ($canViewResult ? ' — Result' : ' — Submission Confirmed') . ' | Student Portal';
+require_once __DIR__ . '/../../includes/header.php';
+
+if ($canViewResult) {
+    $questions = $quizCtrl->getQuizQuestions($quizId);
+    $answers = json_decode($attempt['answers'], true) ?? [];
+    $pct = $attempt['total_marks'] > 0 ? round(($attempt['score'] / $attempt['total_marks']) * 100, 1) : 0;
+    $pctColor = $pct >= 75 ? 'emerald' : ($pct >= 40 ? 'amber' : 'rose');
+    $showResults = $quiz['show_results'];
+}
 ?>
 
 <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-slate-50 dark:bg-slate-900 transition-colors duration-200">
     <div class="max-w-4xl mx-auto space-y-6">
-        
+
+        <!-- Flash Notifications -->
+        <?php if (isset($_SESSION['flash_success'])): ?>
+            <div class="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 flex items-center gap-3 shadow-xs">
+                <i data-lucide="check-circle" class="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0"></i>
+                <p class="text-sm font-medium"><?= htmlspecialchars($_SESSION['flash_success']) ?></p>
+            </div>
+            <?php unset($_SESSION['flash_success']); ?>
+        <?php endif; ?>
+
+        <?php if (isset($_SESSION['flash_error'])): ?>
+            <div class="p-4 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300 flex items-center gap-3 shadow-xs">
+                <i data-lucide="alert-circle" class="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0"></i>
+                <p class="text-sm font-medium"><?= htmlspecialchars($_SESSION['flash_error']) ?></p>
+            </div>
+            <?php unset($_SESSION['flash_error']); ?>
+        <?php endif; ?>
+
+        <?php if (!$canViewResult): ?>
+        <!-- ══════════════════════════════════════════════════════════
+             STATE 1: RESULTS WITHHELD UNTIL QUIZ CLOSES / DEADLINE
+             ══════════════════════════════════════════════════════════ -->
+
+        <!-- Navigation & Header -->
+        <div>
+            <a href="<?= $base ?>/views/student/quizzes.php" class="inline-flex items-center gap-1.5 text-sm text-purple-600 dark:text-purple-400 font-medium hover:underline mb-3">
+                <i data-lucide="arrow-left" class="w-4 h-4"></i> Back to Quizzes
+            </a>
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                    <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+                        <i data-lucide="check-circle-2" class="w-6 h-6 text-emerald-500"></i> Submission Confirmed
+                    </h1>
+                    <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                        <?= htmlspecialchars($quiz['title']) ?> &bull; <?= htmlspecialchars($quiz['course_name'] ?? $quiz['course_code'] ?? 'Course') ?>
+                    </p>
+                </div>
+                <div>
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-700/60 shadow-xs">
+                        <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                        <span>Results Pending Release</span>
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Submission Status Container -->
+        <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200 dark:border-slate-700 space-y-6">
+            
+            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 pb-6 border-b border-slate-100 dark:border-slate-700/60">
+                <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-600 text-white flex items-center justify-center shrink-0 shadow-lg shadow-emerald-500/25">
+                    <i data-lucide="shield-check" class="w-7 h-7"></i>
+                </div>
+                <div>
+                    <h2 class="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">Your Responses Have Been Recorded</h2>
+                    <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                        Your exam submission has been securely stored in the system. To ensure examination integrity and prevent answer sharing while other students are still completing their tests, detailed scores and answer reviews are not released immediately.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Release Policy Notice Box -->
+            <div class="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-indigo-500/10 dark:from-amber-950/40 dark:via-slate-800/40 dark:to-indigo-950/40 border border-amber-200/80 dark:border-amber-700/60 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div class="flex items-start sm:items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 flex items-center justify-center shrink-0">
+                        <i data-lucide="lock" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-bold text-amber-800 dark:text-amber-300 uppercase tracking-wider">Release Condition</p>
+                        <p class="text-sm text-slate-700 dark:text-slate-300 font-medium">
+                            <?php if ($hasEndTime): ?>
+                                Results will be published automatically after <strong class="text-slate-900 dark:text-white"><?= date('D, M j, Y \a\t g:i A', strtotime($quiz['end_time'])) ?></strong> or once closed by faculty.
+                            <?php else: ?>
+                                Results will unlock as soon as the faculty closes this quiz session.
+                            <?php endif; ?>
+                        </p>
+                    </div>
+                </div>
+                <?php if ($hasEndTime): ?>
+                <div class="shrink-0 bg-white/90 dark:bg-slate-800/90 px-4 py-2.5 rounded-xl border border-amber-200/80 dark:border-amber-800/80 text-center sm:text-right shadow-xs">
+                    <span class="text-[10px] uppercase font-black tracking-wider text-slate-400 block">Exam Deadline</span>
+                    <span class="text-xs sm:text-sm font-bold text-amber-700 dark:text-amber-400 flex items-center gap-1 justify-center sm:justify-end">
+                        <i data-lucide="calendar-clock" class="w-4 h-4"></i> <?= date('M d, g:i A', strtotime($quiz['end_time'])) ?>
+                    </span>
+                </div>
+                <?php endif; ?>
+            </div>
+
+            <!-- Safe Submission Overview (No scores or answer leaks) -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200/80 dark:border-slate-700/60">
+                    <div class="flex items-center gap-2 text-slate-500 dark:text-slate-400 mb-1">
+                        <i data-lucide="calendar" class="w-4 h-4 text-indigo-500"></i>
+                        <span class="text-xs font-bold uppercase tracking-wider">Submitted On</span>
+                    </div>
+                    <p class="text-sm font-bold text-slate-900 dark:text-white">
+                        <?= !empty($attempt['started_at']) ? date('M d, Y, h:i A', strtotime($attempt['started_at'])) : date('M d, Y') ?>
+                    </p>
+                </div>
+
+                <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200/80 dark:border-slate-700/60">
+                    <div class="flex items-center gap-2 text-slate-500 dark:text-slate-400 mb-1">
+                        <i data-lucide="timer" class="w-4 h-4 text-purple-500"></i>
+                        <span class="text-xs font-bold uppercase tracking-wider">Time Taken</span>
+                    </div>
+                    <p class="text-sm font-bold text-slate-900 dark:text-white">
+                        <?= $mins ?>m <?= $secs ?>s <span class="text-xs font-normal text-slate-400">/ <?= (int)$quiz['duration_minutes'] ?>m max</span>
+                    </p>
+                </div>
+
+                <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200/80 dark:border-slate-700/60">
+                    <div class="flex items-center gap-2 text-slate-500 dark:text-slate-400 mb-1">
+                        <i data-lucide="check-circle" class="w-4 h-4 text-emerald-500"></i>
+                        <span class="text-xs font-bold uppercase tracking-wider">Status</span>
+                    </div>
+                    <p class="text-sm font-bold text-emerald-600 dark:text-emerald-400">
+                        Received & Secured
+                    </p>
+                </div>
+            </div>
+
+            <!-- Helpful Guidance Box -->
+            <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/30 border border-slate-200/70 dark:border-slate-700/50 text-xs sm:text-sm text-slate-600 dark:text-slate-400 space-y-1.5">
+                <p class="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                    <i data-lucide="info" class="w-4 h-4 text-indigo-500"></i> What happens next?
+                </p>
+                <p>• Your answers have been recorded and locked against further edits.</p>
+                <p>• Once the quiz deadline passes or your instructor closes the exam, return to this page to view your total score, correct/incorrect questions, and percentage.</p>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="pt-2 flex flex-col sm:flex-row items-center gap-3">
+                <a href="<?= $base ?>/views/student/quizzes.php" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-sm font-bold transition-colors shadow-sm">
+                    <i data-lucide="list" class="w-4 h-4"></i> Return to Quizzes
+                </a>
+                <a href="<?= $base ?>/views/student/dashboard.php" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-xl text-sm font-bold transition-colors">
+                    <i data-lucide="layout-dashboard" class="w-4 h-4"></i> Student Dashboard
+                </a>
+            </div>
+
+        </div>
+
+        <?php else: ?>
+        <!-- ══════════════════════════════════════════════════════════
+             STATE 2: RESULTS RELEASED (QUIZ CLOSED OR DEADLINE PASSED)
+             ══════════════════════════════════════════════════════════ -->
+
         <!-- Header -->
         <div>
             <a href="<?= $base ?>/views/student/quizzes.php" class="inline-flex items-center gap-1.5 text-sm text-purple-600 dark:text-purple-400 font-medium hover:underline mb-3">
@@ -46,7 +197,18 @@ $showResults = $quiz['show_results'];
             <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
                 <i data-lucide="trophy" class="w-6 h-6 text-amber-500"></i> Quiz Result
             </h1>
-            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1"><?= htmlspecialchars($quiz['title']) ?></p>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1 flex flex-wrap items-center gap-2">
+                <span><?= htmlspecialchars($quiz['title']) ?></span>
+                <?php if ($quiz['status'] === 'CLOSED'): ?>
+                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+                        <i data-lucide="lock" class="w-3 h-3"></i> Quiz Closed by Faculty
+                    </span>
+                <?php elseif ($hasEndTime && strtotime($quiz['end_time']) <= time()): ?>
+                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                        <i data-lucide="calendar-check" class="w-3 h-3"></i> Deadline Concluded
+                    </span>
+                <?php endif; ?>
+            </p>
         </div>
 
         <!-- Score Card -->
@@ -153,6 +315,8 @@ $showResults = $quiz['show_results'];
             <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Detailed Results Hidden</h3>
             <p class="text-sm text-slate-500 mt-1">The faculty has disabled detailed results for this quiz.</p>
         </div>
+        <?php endif; ?>
+
         <?php endif; ?>
 
     </div>

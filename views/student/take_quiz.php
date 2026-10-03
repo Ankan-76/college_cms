@@ -13,13 +13,13 @@ $quizId = isset($_GET['quiz_id']) ? (int)$_GET['quiz_id'] : 0;
 $studentId = $_SESSION['user_id'];
 
 $quiz = $quizCtrl->getQuizById($quizId);
-if (!$quiz || $quiz['status'] !== 'PUBLISHED') {
-    $_SESSION['flash_error'] = 'Quiz not available.';
+if (!$quiz) {
+    $_SESSION['flash_error'] = 'Quiz not found.';
     header('Location: quizzes.php');
     exit;
 }
 
-// Check already attempted
+// Check already attempted (redirect to result even if closed)
 $existingAttempt = $quizCtrl->getStudentAttempt($quizId, $studentId);
 if ($existingAttempt) {
     $_SESSION['flash_error'] = 'You have already attempted this quiz.';
@@ -27,14 +27,23 @@ if ($existingAttempt) {
     exit;
 }
 
-// Check time window
-$now = time();
-if ($quiz['start_time'] && strtotime($quiz['start_time']) > $now) {
-    $_SESSION['flash_error'] = 'This quiz has not started yet.';
+if ($quiz['status'] !== 'PUBLISHED') {
+    $_SESSION['flash_error'] = 'Quiz not available.';
     header('Location: quizzes.php');
     exit;
 }
-if ($quiz['end_time'] && strtotime($quiz['end_time']) < $now) {
+
+// Check time window
+$now = time();
+$hasStartTime = !empty($quiz['start_time']) && $quiz['start_time'] !== '0000-00-00 00:00:00';
+$hasEndTime = !empty($quiz['end_time']) && $quiz['end_time'] !== '0000-00-00 00:00:00';
+
+if ($hasStartTime && strtotime($quiz['start_time']) > $now) {
+    $_SESSION['flash_error'] = 'This quiz has not started yet (scheduled to start at ' . date('M d, Y h:i A', strtotime($quiz['start_time'])) . ').';
+    header('Location: quizzes.php');
+    exit;
+}
+if ($hasEndTime && strtotime($quiz['end_time']) < $now) {
     $_SESSION['flash_error'] = 'This quiz has expired.';
     header('Location: quizzes.php');
     exit;
@@ -347,7 +356,10 @@ $startedAt = date('Y-m-d H:i:s');
         }
 
         // ── Submit ─────────────────────────────────────
+        let isSubmitting = false;
+
         function confirmSubmit() {
+            if (isSubmitting) return;
             const unanswered = totalQuestions - answeredSet.size;
             let msg = 'Are you sure you want to submit?';
             if (unanswered > 0) {
@@ -359,22 +371,36 @@ $startedAt = date('Y-m-d H:i:s');
         }
 
         function autoSubmit() {
+            if (isSubmitting) return;
             alert('Time is up! Your quiz will be submitted automatically.');
             submitQuiz();
         }
 
         function submitQuiz() {
+            if (isSubmitting) return;
+            isSubmitting = true;
+            window.removeEventListener('beforeunload', handleBeforeUnload);
             clearInterval(timerInterval);
             document.getElementById('time-taken-input').value = elapsedSeconds;
             sessionStorage.removeItem('quiz_<?= $quizId ?>_answers');
             document.getElementById('quiz-form').submit();
         }
 
-        // Prevent accidental navigation
-        window.addEventListener('beforeunload', (e) => {
+        // Prevent accidental navigation while taking the quiz
+        function handleBeforeUnload(e) {
+            if (isSubmitting) return;
             e.preventDefault();
             e.returnValue = '';
-        });
+        }
+        window.addEventListener('beforeunload', handleBeforeUnload);
+
+        const quizForm = document.getElementById('quiz-form');
+        if (quizForm) {
+            quizForm.addEventListener('submit', () => {
+                isSubmitting = true;
+                window.removeEventListener('beforeunload', handleBeforeUnload);
+            });
+        }
 
         // Initialize
         restoreAnswers();

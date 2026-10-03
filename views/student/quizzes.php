@@ -95,24 +95,40 @@ $base = defined('BASE_URL') ? BASE_URL : '/college_cms';
                     <?php foreach ($group['items'] as $quiz):
                         $attempt = $attempts[$quiz['id']] ?? null;
                         $now = time();
-                        $isBeforeStart = $quiz['start_time'] && strtotime($quiz['start_time']) > $now;
-                        $isAfterEnd = $quiz['end_time'] && strtotime($quiz['end_time']) < $now;
+                        $hasStartTime = !empty($quiz['start_time']) && $quiz['start_time'] !== '0000-00-00 00:00:00';
+                        $hasEndTime = !empty($quiz['end_time']) && $quiz['end_time'] !== '0000-00-00 00:00:00';
+                        
+                        $isBeforeStart = $hasStartTime && (strtotime($quiz['start_time']) > $now);
+                        $isAfterEnd = $hasEndTime && (strtotime($quiz['end_time']) < $now);
+                        $hasQuestions = (int)($quiz['question_count'] ?? 0) > 0;
+                        $canViewResult = $quizCtrl->canViewResults($quiz);
                         
                         if ($attempt) {
-                            $status = 'Attempted';
-                            $statusColor = 'emerald';
+                            if ($canViewResult) {
+                                $status = ($quiz['status'] === 'CLOSED') ? 'Attempted (Closed)' : 'Attempted (Completed)';
+                                $statusColor = 'emerald';
+                            } else {
+                                $status = 'Submitted (Result Pending)';
+                                $statusColor = 'amber';
+                            }
+                        } elseif ($quiz['status'] === 'CLOSED') {
+                            $status = 'Closed';
+                            $statusColor = 'slate';
                         } elseif ($isBeforeStart) {
                             $status = 'Upcoming';
                             $statusColor = 'amber';
                         } elseif ($isAfterEnd) {
                             $status = 'Expired';
                             $statusColor = 'slate';
+                        } elseif (!$hasQuestions) {
+                            $status = 'No Questions';
+                            $statusColor = 'slate';
                         } else {
                             $status = 'Available';
                             $statusColor = 'indigo';
                         }
                         
-                        $canTake = !$attempt && !$isBeforeStart && !$isAfterEnd;
+                        $canTake = !$attempt && ($quiz['status'] === 'PUBLISHED') && !$isBeforeStart && !$isAfterEnd && $hasQuestions;
                     ?>
                     <div class="p-4 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
                         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -127,23 +143,32 @@ $base = defined('BASE_URL') ? BASE_URL : '/college_cms';
                                     <span class="flex items-center gap-1"><i data-lucide="help-circle" class="w-3 h-3"></i> <?= $quiz['question_count'] ?> questions</span>
                                     <span class="flex items-center gap-1"><i data-lucide="clock" class="w-3 h-3"></i> <?= $quiz['duration_minutes'] ?> min</span>
                                     <span class="flex items-center gap-1"><i data-lucide="star" class="w-3 h-3"></i> <?= $quiz['total_marks'] ?> marks</span>
-                                    <?php if ($quiz['start_time'] || $quiz['end_time']): ?>
+                                    <?php if ($hasStartTime || $hasEndTime): ?>
                                     <span class="flex items-center gap-1">
                                         <i data-lucide="calendar" class="w-3 h-3"></i>
-                                        <?= $quiz['start_time'] ? date('M d, h:i A', strtotime($quiz['start_time'])) : 'Open' ?> — <?= $quiz['end_time'] ? date('M d, h:i A', strtotime($quiz['end_time'])) : 'Open' ?>
+                                        <?= $hasStartTime ? date('M d, h:i A', strtotime($quiz['start_time'])) : 'Open' ?> — <?= $hasEndTime ? date('M d, h:i A', strtotime($quiz['end_time'])) : 'Open' ?>
                                     </span>
                                     <?php endif; ?>
                                 </div>
                                 
                                 <!-- Attempt result -->
                                 <?php if ($attempt): ?>
-                                <div class="mt-2 p-2.5 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg">
-                                    <?php $pct = $attempt['total_marks'] > 0 ? round(($attempt['score'] / $attempt['total_marks']) * 100, 1) : 0; ?>
-                                    <p class="text-xs sm:text-sm font-bold text-emerald-700 dark:text-emerald-400">
-                                        Score: <?= $attempt['score'] ?> / <?= $attempt['total_marks'] ?> (<?= $pct ?>%)
-                                        &bull; <?= $attempt['correct_count'] ?> correct, <?= $attempt['wrong_count'] ?> wrong
-                                    </p>
-                                </div>
+                                    <?php if ($canViewResult): ?>
+                                    <div class="mt-2 p-2.5 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg">
+                                        <?php $pct = $attempt['total_marks'] > 0 ? round(($attempt['score'] / $attempt['total_marks']) * 100, 1) : 0; ?>
+                                        <p class="text-xs sm:text-sm font-bold text-emerald-700 dark:text-emerald-400">
+                                            Score: <?= $attempt['score'] ?> / <?= $attempt['total_marks'] ?> (<?= $pct ?>%)
+                                            &bull; <?= $attempt['correct_count'] ?> correct, <?= $attempt['wrong_count'] ?> wrong
+                                        </p>
+                                    </div>
+                                    <?php else: ?>
+                                    <div class="mt-2 p-2.5 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/60 rounded-lg">
+                                        <p class="text-xs sm:text-sm font-medium text-amber-800 dark:text-amber-300 flex items-center gap-1.5">
+                                            <i data-lucide="clock" class="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0"></i>
+                                            <span>Responses recorded. Result will be released once closed by faculty<?= $hasEndTime ? ' or after deadline (' . date('M d, h:i A', strtotime($quiz['end_time'])) . ')' : '' ?>.</span>
+                                        </p>
+                                    </div>
+                                    <?php endif; ?>
                                 <?php endif; ?>
                             </div>
                             
@@ -153,9 +178,31 @@ $base = defined('BASE_URL') ? BASE_URL : '/college_cms';
                                     <i data-lucide="play" class="w-4 h-4"></i> Start Quiz
                                 </a>
                                 <?php elseif ($attempt): ?>
-                                <a href="<?= $base ?>/views/student/quiz_result.php?quiz_id=<?= $quiz['id'] ?>" class="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3.5 py-2 sm:py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 dark:text-indigo-300 rounded-xl sm:rounded-lg text-xs font-bold transition-colors">
-                                    <i data-lucide="eye" class="w-3.5 h-3.5"></i> View Results
-                                </a>
+                                    <?php if ($canViewResult): ?>
+                                    <a href="<?= $base ?>/views/student/quiz_result.php?quiz_id=<?= $quiz['id'] ?>" class="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3.5 py-2 sm:py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 dark:text-indigo-300 rounded-xl sm:rounded-lg text-xs font-bold transition-colors">
+                                        <i data-lucide="eye" class="w-3.5 h-3.5"></i> View Results
+                                    </a>
+                                    <?php else: ?>
+                                    <a href="<?= $base ?>/views/student/quiz_result.php?quiz_id=<?= $quiz['id'] ?>" class="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3.5 py-2 sm:py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:hover:bg-amber-900/50 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 rounded-xl sm:rounded-lg text-xs font-bold transition-colors">
+                                        <i data-lucide="clock" class="w-3.5 h-3.5 text-amber-600 dark:text-amber-400"></i> View Status
+                                    </a>
+                                    <?php endif; ?>
+                                <?php elseif ($quiz['status'] === 'CLOSED'): ?>
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-lg text-xs font-semibold">
+                                    <i data-lucide="lock" class="w-3.5 h-3.5"></i> Closed
+                                </span>
+                                <?php elseif ($isBeforeStart): ?>
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 rounded-lg text-xs font-semibold">
+                                    <i data-lucide="clock" class="w-3.5 h-3.5 text-amber-500"></i> Starts <?= date('M d, h:i A', strtotime($quiz['start_time'])) ?>
+                                </span>
+                                <?php elseif ($isAfterEnd): ?>
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-lg text-xs font-semibold">
+                                    <i data-lucide="calendar-off" class="w-3.5 h-3.5"></i> Expired
+                                </span>
+                                <?php elseif (!$hasQuestions): ?>
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-lg text-xs font-semibold">
+                                    <i data-lucide="alert-circle" class="w-3.5 h-3.5"></i> No Questions
+                                </span>
                                 <?php endif; ?>
                             </div>
                         </div>

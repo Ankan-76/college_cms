@@ -18,9 +18,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $attendanceData = isset($_POST['attendance']) ? $_POST['attendance'] : [];
     $facultyId = $_SESSION['faculty_profile_id'] ?? $_SESSION['user_id'];
 
+    $deptParam = !empty($_POST['department_id']) ? '&department_id=' . (int)$_POST['department_id'] : '';
+    $semParam = !empty($_POST['semester_id']) ? '&semester_id=' . (int)$_POST['semester_id'] : '';
+
     if (!$courseId || !$date || empty($attendanceData)) {
         $_SESSION['flash_error'] = 'Invalid attendance data submitted.';
-        header("Location: ../views/faculty/take_attendance.php?course_id={$courseId}&date={$date}");
+        header("Location: ../views/faculty/take_attendance.php?course_id={$courseId}&date={$date}{$deptParam}{$semParam}");
         exit;
     }
 
@@ -34,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // Redirect back to the take attendance page with the same filters
-    header("Location: ../views/faculty/take_attendance.php?course_id={$courseId}&date={$date}");
+    header("Location: ../views/faculty/take_attendance.php?course_id={$courseId}&date={$date}{$deptParam}{$semParam}");
     exit;
 } else {
     // Invalid request method

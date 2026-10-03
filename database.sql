@@ -1,4 +1,4 @@
--- MariaDB dump 10.19  Distrib 10.4.32-MariaDB, for Win64 (AMD64)
+ -- MariaDB dump 10.19  Distrib 10.4.32-MariaDB, for Win64 (AMD64)
 --
 -- Host: localhost    Database: college_cms
 -- ------------------------------------------------------
@@ -191,6 +191,7 @@ CREATE TABLE `assessments` (
   `faculty_id` int(11) NOT NULL,
   `title` varchar(255) NOT NULL,
   `max_marks` int(11) NOT NULL DEFAULT 100,
+  `pass_marks` int(11) NOT NULL DEFAULT 40,
   `created_at` datetime DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   KEY `course_id` (`course_id`),
@@ -207,6 +208,36 @@ CREATE TABLE `assessments` (
 LOCK TABLES `assessments` WRITE;
 /*!40000 ALTER TABLE `assessments` DISABLE KEYS */;
 /*!40000 ALTER TABLE `assessments` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `assessment_marks`
+--
+
+DROP TABLE IF EXISTS `assessment_marks`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `assessment_marks` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `assessment_id` int(11) NOT NULL,
+  `student_id` int(11) NOT NULL,
+  `marks_obtained` decimal(5,2) DEFAULT NULL,
+  `remarks` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `assessment_id` (`assessment_id`,`student_id`),
+  KEY `student_id` (`student_id`),
+  CONSTRAINT `assessment_marks_ibfk_1` FOREIGN KEY (`assessment_id`) REFERENCES `assessments` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `assessment_marks_ibfk_2` FOREIGN KEY (`student_id`) REFERENCES `students` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `assessment_marks`
+--
+
+LOCK TABLES `assessment_marks` WRITE;
+/*!40000 ALTER TABLE `assessment_marks` DISABLE KEYS */;
+/*!40000 ALTER TABLE `assessment_marks` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --

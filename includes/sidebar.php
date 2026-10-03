@@ -91,7 +91,7 @@ if ($role === 'ADMIN') {
         ['is_header' => true, 'label' => 'OPERATIONS'],
         ['url' => '/views/faculty/take_attendance.php', 'icon' => 'clipboard-check', 'label' => 'Take Attendance'],
         ['url' => '/views/faculty/view_attendance.php', 'icon' => 'pie-chart', 'label' => 'View Attendance'],
-        ['url' => '/views/faculty/manage_marks.php', 'icon' => 'award', 'label' => 'Assignments'],
+        ['url' => '/views/faculty/manage_marks.php', 'icon' => 'award', 'label' => 'Internal Marks'],
         
         // Communication
         ['is_header' => true, 'label' => 'COMMUNICATION'],

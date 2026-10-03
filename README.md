@@ -64,6 +64,7 @@ graph TD
         RBACMid --> AuthC[AuthController]
         RBACMid --> AdminC[AdminController]
         RBACMid --> AssignC[AssignmentController]
+        RBACMid --> AssessC[AssessmentController]
         RBACMid --> AttC[AttendanceController]
         RBACMid --> QuizC[QuizController]
         RBACMid --> MsgC[MessageController]
@@ -164,13 +165,18 @@ The Faculty Portal provides educators with an intuitive digital workstation to m
 ├── view_attendance.php         # Historical attendance registries & export
 ├── assignments.php             # Coursework creator, assignment editor (extend dates, marks) & file attachments
 ├── view_submissions.php        # Comprehensive grading suite with modal evaluation & qualitative feedback
-├── quizzes.php                 # Online examination & quiz builder
+├── manage_marks.php            # Internal assessment score ledger, pass marks validation & CSV export
+├── quizzes.php                 # Online examination & quiz builder with 3-tier cascade filters & status ordering
 ├── manage_quiz.php             # Question bank creation, point weighting & duration
 ├── quiz_results.php            # Automated attempt scores & submission breakdown
 ├── study_materials.php         # Digital file repository with in-browser document viewer & resource editor
 ├── messages.php                # Real-time chat with students & faculty peers
 ├── apply_leave.php             # Leave applications with file uploads
-└── timetable.php               # Personalized weekly teaching schedule
+├── my_leaves.php               # Personal leave applications history & tracking
+├── my_feedbacks.php            # Student feedback & evaluations review
+├── timetable.php               # Personalized weekly teaching schedule
+├── view-profile.php            # Faculty profile credentials & department info
+└── edit-profile.php            # Faculty profile details & avatar management
 ```
 
 #### 🌟 Modern Faculty Workstation Dashboard Highlights (`dashboard.php`):
@@ -193,11 +199,28 @@ The Faculty Portal provides educators with an intuitive digital workstation to m
 - **Coursework Deliverables & Resources:** Recently created assignments with submission counters and recent study material uploads with direct **View Online** and **Download** actions.
 
 #### Key Capabilities:
-- **Attendance Management:** Mark attendance daily with single-click status toggles (`PRESENT`, `ABSENT`, `LATE`) and instant attendance percentage computations.
+- **Attendance Management & Reports Suite (`take_attendance.php`, `view_attendance.php`):** 
+  - *3-Tier Department & Semester Cascading Filters:* Instructors can filter by **Department** and **Semester** before selecting the target **Subject / Course**, greatly simplifying roster loading and reporting for faculty teaching across multiple programs.
+  - *Smart Context Inference & State Preservation:* Directly navigating or toggling between *Take Attendance* and *View Attendance* automatically infers Department and Semester from the selected `course_id`, preserving active filters and lecture dates across submissions and transitions.
+  - *Smart Attendance Ledger (`take_attendance.php`):* Step-by-step roster setup (1: Department → 2: Semester → 3: Subject → 4: Lecture Date), single-click radio toggles (`PRESENT`, `ABSENT`, `LATE`), quick bulk marking buttons, and guided empty state prompt.
+  - *Cumulative Attendance Analytics & Visual Intelligence (`view_attendance.php`):* 
+    - **Summary KPI Metric Cards:** 4 responsive overview metrics for Total Enrolled Students, Class Average Attendance Rate %, Exam Eligible Students count ($\ge 75\%$), and At-Risk Shortage count ($< 75\%$).
+    - **Student Attendance Comparison Bar Chart:** Student-by-student comparative bar chart with color-coded rate fills ($\ge 75\%$ Emerald, $60-74\%$ Amber, $< 60\%$ Rose) and an explicit **75% Statutory Exam Criterion Benchmark Line** across the canvas.
+    - **Class Eligibility Distribution Doughnut Chart:** Breakdown across statutory exam qualification tiers (Safe $\ge 75\%$, Warning $60-74\%$, Critical $< 60\%$) featuring a responsive center-text metric plugin displaying Class Average % and health status.
+    - **Multi-Format Export & Print Compatibility:** Instant client-side **Export Charts as PDF** (`html2pdf.js`), raw ledger **CSV Spreadsheet Export**, and executive **Black & White Print Report** mode that cleanly hides screen-only chart canvases for official paper records.
 - **Assessment Lifecycle & Comprehensive Grading Suite:** 
   - *Assignment Creation & Editing (`assignments.php`):* Instructors can author coursework with detailed instructions, attachments, maximum marks, and strict due dates. Existing assignments can be edited at any time to extend deadlines, adjust marks weighting, update instructions, switch between draft/published statuses, and replace attached reference files.
   - *Submissions Evaluation Suite (`view_submissions.php`):* View all student submissions categorized by status (`All`, `Pending`, `Graded`, `Late`). Instructors can review submitted files online or download them, assign scores (with full zero-delta support for assigning 0 marks), and provide personalized qualitative feedback remarks.
-- **Online Quiz Engine:** Build timed quizzes with auto-scoring multiple-choice questions, shuffle logic, answer explanations, and automated grade posting.
+- **Online Quiz Engine & Advanced Examination Suite (`quizzes.php`, `manage_quiz.php`, `quiz_results.php`):**
+  - *3-Tier Cascade Filter Bar & Dedicated Action Buttons:* Filter quizzes seamlessly by Department, Semester, and Subject. Includes explicit **Filter** and **Reset** buttons for deliberate query execution and instant 1-click filter clearing.
+  - *Hierarchical Default Ordering (`ACTIVE > UPCOMING > DRAFT > CLOSED`):* By default, all faculty quizzes are loaded across subjects and sorted in `Active / Live` (currently ongoing within scheduled window) → `Upcoming` (scheduled for future dates) → `Draft` (work in progress) → `Closed / Expired` order.
+  - *Real-Time Status KPI Pills:* Overview strip showcasing real-time counts for Total Quizzes, Active / Live (with animated pulse indicator), Upcoming, Drafts, and Closed quizzes.
+  - *Create Quiz Modal with Department & Semester Chaining:* Select Department and Semester to dynamically narrow down the Subject / Course list, pre-populating with active page filters.
+  - *Complete Quiz Lifecycle & Question Bank:* Multiple-choice question authoring with point weighting, question shuffle logic, automated evaluation, results hide/show toggle, one-click Publish / Close / Reopen toggles, and safe cascading deletion.
+- **Internal Assessment & Continuous Marks Ledger (`manage_marks.php`):**
+  - *Configurable Pass Marks:* Set custom pass marks per assessment with smart auto-suggest (40% default) during assessment creation and editing.
+  - *In-Flow Marks Entry Matrix:* Responsive student marks ledger with dynamic pass/fail status badges, real-time percentage indicators, and top & bottom bulk save actions.
+  - *Analytics & Export:* Instant class pass-rate calculations, aggregate score statistics, and single-click CSV ledger export.
 - **Digital Study Materials & Edit Suite (`study_materials.php`):** 
   - Upload syllabi, presentation decks, lecture notes, and reference documents.
   - **Upload Modal Subject Default:** Defaults strictly to `"-- Select Subject --"` to ensure instructors intentionally select the target course before submission, preventing accidental uploads to pre-selected courses.
@@ -214,17 +237,21 @@ The Student Portal empowers learners with self-service academic tracking, lectur
 /views/student/
 ├── dashboard.php               # Modernized academic control center with attendance intelligence & Chart.js analytics
 ├── my_subjects.php             # Enrolled courses, instructors, credit hours
-├── my_attendance.php           # Mobile-responsive attendance percentages & 2x2 summary metrics
+├── my_attendance.php           # Interactive Visual Analytics Suite with subject comparison bar chart, 75% exam benchmark line, overall status doughnut & export tools
 ├── my_timetable.php            # Visual weekly class schedule & room assignments
 ├── my_grades.php               # Comprehensive grade book with responsive score ledger
 ├── assignments.php             # Coursework portal with sent work preview & submission tracking
 ├── quizzes.php                 # Active & upcoming online examinations with responsive cards
-├── take_quiz.php               # Interactive timed quiz-taking interface
-├── quiz_result.php             # Post-exam question breakdown and score report
+├── take_quiz.php               # Interactive timed quiz-taking interface with leave protection
+├── quiz_result.php             # Post-exam question breakdown and score report (accessible for closed quizzes)
 ├── study_materials.php         # Responsive learning hub with in-browser document viewer & direct download
 ├── messages.php                # Direct messaging with professors and classmates
 ├── apply_leave.php             # Student leave application submission
-└── notices.php                 # Institutional circulars & responsive notice cards
+├── my_leaves.php               # Personal leave applications history & tracking
+├── my_feedbacks.php            # Institutional feedback submissions & history
+├── notices.php                 # Institutional circulars & responsive notice cards
+├── view-profile.php            # Student profile details & academic passport
+└── edit-profile.php            # Student contact info & avatar management
 ```
 
 #### 🌟 Modern Student Academic Dashboard Highlights (`dashboard.php`):
@@ -254,6 +281,12 @@ The Student Portal empowers learners with self-service academic tracking, lectur
 - **Zero-Flicker Theme Synchronization:** Fully integrated with dark/light mode toggle via `MutationObserver` to re-render charts automatically on theme switch.
 
 #### Key Capabilities & Responsive Architecture:
+- **Interactive Visual Attendance Analytics Suite (`my_attendance.php` & `dashboard.php`):**
+  - *Subject-Wise Attendance Bar Chart with 75% Benchmark:* Interactive comparison of attendance rates across all enrolled courses with dynamic gradient coloring (Emerald $\ge 75\%$, Amber $50-74\%$, Rose $< 50\%$) and an explicit **75% Exam Criterion Benchmark Line** drawn across the canvas to instantly identify deficient subjects.
+  - *Overall Session Status Doughnut Chart:* Proportional distribution of Present, Late, and Absent sessions with center-metric text displaying overall attendance percentage and real-time eligibility standing badge (`SAFE / ELIGIBLE` vs `DEFICIT`).
+  - *Actionable Attendance Advisory Engine:* Automatically projects how many consecutive classes must be attended to restore 75% standing or how many sessions can safely be missed without compromising exam eligibility.
+  - *Multi-Format Export & Print Suite:* 1-click export to PDF (`html2pdf.js`), detailed Excel workbook (`SheetJS XLSX` with full subject codes, names, credits, class tallies, and eligibility status), and formatted printer-friendly view.
+  - *Zero-Flicker Dark Mode Reactivity:* Chart.js instances react instantly to theme toggling via `MutationObserver` with tailored dark/light color palettes, grid lines, and tooltips.
 - **Mobile-First Responsive UI Architecture:** The entire student portal has been comprehensively overhauled for optimal usability on mobile smartphones (down to 320px screen width), tablets, and desktops. Uses responsive column stacking (`flex-col sm:flex-row`), flex-wrapping metadata tags (`flex-wrap gap-x-2 gap-y-1`), and dedicated full-width action toolbars to prevent button squishing and text truncation.
 - **Coursework Management & Sent Work Viewer (`assignments.php`):**
   - Track active assignments, deadlines, late submission flags, and maximum marks.
@@ -270,8 +303,13 @@ The Student Portal empowers learners with self-service academic tracking, lectur
   - Horizontally scrollable tabular attendance log with wrapping status badges.
 - **Academic Grade Book & Ledger (`my_grades.php`):**
   - Comprehensive transcript view across semesters with GPA metrics, component mark breakdowns, and responsive score ledger cards that stack gracefully on mobile screens.
-- **Online Examination Suite (`quizzes.php` & `take_quiz.php`):**
-  - Responsive quiz cards with duration and question counts. Fully timed examination player with automatic submission on timeout and post-exam review breakdown.
+- **Online Examination & Assessment Portal (`quizzes.php`, `take_quiz.php`, `quiz_result.php`):**
+  - *Responsive Quiz Catalog:* Displays active, upcoming, and completed quizzes grouped by course.
+  - *Delayed Results Release Policy:* To protect examination integrity and prevent answer-sharing while classmates are still taking tests, scores and detailed reviews are withheld immediately after submission. Results unlock automatically once the instructor closes the quiz (`CLOSED`) or when the scheduled quiz deadline (`end_time`) passes.
+  - *Submission Receipt & Status View:* Prior to result release, students receive a verified submission confirmation screen displaying receipt timestamp, duration taken, and release conditions without leaking scores or answer keys.
+  - *Persistent Results Access:* Once released, students can access their full score breakdown, time taken, and question-by-question review for any attempted quiz even after the quiz has been closed by faculty (`CLOSED`), persisting until deleted.
+  - *Seamless Exam Submission:* Form submissions cleanly detach `beforeunload` window listeners, eliminating misleading browser "Leave site? Changes you made may not be saved" popups during submission while preserving navigation guards during live test taking.
+  - *Timezone Synchronization:* Standardized to `Asia/Kolkata` (IST) to ensure exact synchronization with class schedules and instant test activation.
 - **Campus Circulars & Communication (`notices.php` & `messages.php`):**
   - Official college notices with attachment previews and downloads. Direct real-time messaging with professors and classmates, complete with threaded replies and emoji reactions.
 
@@ -403,6 +441,11 @@ erDiagram
     ASSIGNMENTS ||--o{ ASSIGNMENT_SUBMISSIONS : "receives"
     STUDENTS ||--o{ ASSIGNMENT_SUBMISSIONS : "submits"
 
+    COURSES ||--o{ ASSESSMENTS : "categorizes"
+    TEACHERS ||--o{ ASSESSMENTS : "creates"
+    ASSESSMENTS ||--o{ ASSESSMENT_MARKS : "evaluates"
+    STUDENTS ||--o{ ASSESSMENT_MARKS : "receives"
+
     COURSES ||--o{ QUIZZES : "evaluates"
     TEACHERS ||--o{ QUIZZES : "authors"
     QUIZZES ||--o{ QUIZ_QUESTIONS : "includes"
@@ -439,6 +482,8 @@ erDiagram
 | `timetables` | Weekly scheduling matrix by day, time, room | FK `courses(id)`, FK `teachers(id)`, FK `departments(id)` |
 | `assignments` | Coursework assignments created by instructors | FK `courses(id)`, FK `teachers(id)` |
 | `assignment_submissions`| Student uploaded work, scores, and feedback | FK `assignments(id)`, FK `students(id)` |
+| `assessments` | Internal examinations and continuous assessments with pass marks | FK `courses(id)`, FK `teachers(id)` |
+| `assessment_marks` | Student marks ledger, pass/fail status, teacher remarks | FK `assessments(id)`, FK `students(id)` |
 | `quizzes` | Timed online examinations and configurations | FK `courses(id)`, FK `teachers(id)` |
 | `quiz_questions`| Question bank items (Options A–D, correct answer) | FK `quizzes(id)` |
 | `quiz_attempts` | Student exam attempts, scores, and JSON answers | FK `quizzes(id)`, FK `students(id)` |
@@ -474,7 +519,7 @@ college_cms/
 │   └── database.php                 # Singleton PDO database connector
 ├── controllers/                     # Application Business Logic Controllers
 │   ├── AdminController.php          # Admin dashboard & analytics logic
-│   ├── AssessmentController.php     # Manual assessment scoring logic
+│   ├── AssessmentController.php     # Internal assessment & continuous marks ledger with pass marks logic
 │   ├── AssignmentController.php     # Coursework lifecycle, assignment editing & student grading
 │   ├── AttendanceController.php     # Daily attendance calculation & recording
 │   ├── AuthController.php           # Authentication, session establishment, OTP mailer
@@ -484,8 +529,8 @@ college_cms/
 │   ├── MaterialController.php       # File repository uploading, editing with disk cleanup & streaming
 │   ├── MessageController.php        # Messaging, reactions, replies, pinning
 │   ├── NoticeController.php         # Official college circular publishing
-│   ├── QuizController.php           # Online test generation & auto-grading
-│   └── process_*.php                # Action dispatcher endpoints (assignments, materials, submissions, etc.)
+│   ├── QuizController.php           # Online test generation, 3-tier cascade filtering & hierarchical sort
+│   └── process_*.php                # Action dispatcher endpoints (assessments, quizzes, materials, marks, etc.)
 ├── includes/                        # System Middlewares, Core Helpers, Libraries
 │   ├── PHPMailer/                   # PHPMailer SMTP email engine
 │   ├── auth_middleware.php          # Session verification (`require_auth`, `require_role`)

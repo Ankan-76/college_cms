@@ -42,6 +42,96 @@ class QuizController {
     }
 
     /**
+     * Get filtered quizzes for faculty portal, ordered by:
+     * 1. ACTIVE (Live, currently ongoing)
+     * 2. UPCOMING (Scheduled for future)
+     * 3. DRAFT (Not yet published)
+     * 4. CLOSED (Closed or expired)
+     */
+    public function getFilteredFacultyQuizzes(int $facultyId, int $departmentId = 0, int $semesterId = 0, int $courseId = 0): array {
+        try {
+            $sql = "
+                SELECT q.*, 
+                       c.course_code, c.course_name, c.department_id, c.semester_id,
+                       d.dept_name, d.dept_code,
+                       s.semester_number,
+                       (SELECT COUNT(*) FROM quiz_questions qq WHERE qq.quiz_id = q.id) as question_count,
+                       (SELECT COALESCE(SUM(qq2.marks), 0) FROM quiz_questions qq2 WHERE qq2.quiz_id = q.id) as total_marks,
+                       (SELECT COUNT(*) FROM quiz_attempts qa WHERE qa.quiz_id = q.id) as attempt_count,
+                       CASE 
+                           WHEN q.status = 'PUBLISHED' 
+                                AND (q.start_time IS NULL OR q.start_time <= NOW()) 
+                                AND (q.end_time IS NULL OR q.end_time >= NOW()) THEN 'ACTIVE'
+                           WHEN q.status = 'PUBLISHED' 
+                                AND q.start_time IS NOT NULL 
+                                AND q.start_time > NOW() THEN 'UPCOMING'
+                           WHEN q.status = 'DRAFT' THEN 'DRAFT'
+                           ELSE 'CLOSED'
+                       END as display_state
+                FROM quizzes q
+                JOIN courses c ON q.course_id = c.id
+                JOIN departments d ON c.department_id = d.id
+                JOIN semesters s ON c.semester_id = s.id
+                WHERE q.faculty_id = ?
+            ";
+            $params = [$facultyId];
+
+            if ($departmentId > 0) {
+                $sql .= " AND c.department_id = ?";
+                $params[] = $departmentId;
+            }
+            if ($semesterId > 0) {
+                $sql .= " AND c.semester_id = ?";
+                $params[] = $semesterId;
+            }
+            if ($courseId > 0) {
+                $sql .= " AND q.course_id = ?";
+                $params[] = $courseId;
+            }
+
+            $sql .= "
+                ORDER BY 
+                    CASE 
+                        -- Active / Live
+                        WHEN q.status = 'PUBLISHED' 
+                             AND (q.start_time IS NULL OR q.start_time <= NOW()) 
+                             AND (q.end_time IS NULL OR q.end_time >= NOW()) THEN 1
+                        -- Upcoming
+                        WHEN q.status = 'PUBLISHED' 
+                             AND q.start_time IS NOT NULL 
+                             AND q.start_time > NOW() THEN 2
+                        -- Draft
+                        WHEN q.status = 'DRAFT' THEN 3
+                        -- Closed / Expired
+                        ELSE 4
+                    END ASC,
+                    -- For active: ending soonest first
+                    CASE 
+                        WHEN q.status = 'PUBLISHED' 
+                             AND (q.start_time IS NULL OR q.start_time <= NOW()) 
+                             AND (q.end_time IS NULL OR q.end_time >= NOW()) 
+                        THEN COALESCE(q.end_time, '9999-12-31 23:59:59')
+                    END ASC,
+                    -- For upcoming: starting soonest first
+                    CASE 
+                        WHEN q.status = 'PUBLISHED' 
+                             AND q.start_time IS NOT NULL 
+                             AND q.start_time > NOW() 
+                        THEN q.start_time 
+                    END ASC,
+                    q.created_at DESC
+            ";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+            return $stmt->fetchAll();
+        } catch (PDOException $e) {
+            error_log("DB Error fetching filtered faculty quizzes: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
      * Get a single quiz by ID.
      */
     public function getQuizById(int $id): ?array {
@@ -302,7 +392,7 @@ class QuizController {
 
             return [
                 'success' => true,
-                'message' => 'Quiz submitted successfully.',
+                'message' => 'Quiz submitted successfully. Results will be released once closed by faculty or after the deadline.',
                 'score' => $score,
                 'total_marks' => $totalMarks,
                 'correct' => $correct,
@@ -362,7 +452,7 @@ class QuizController {
                 FROM quizzes q
                 JOIN courses c ON q.course_id = c.id
                 LEFT JOIN teachers fp ON q.faculty_id = fp.id
-                WHERE c.department_id = ? AND c.semester_id = ? AND q.status = 'PUBLISHED'
+                WHERE c.department_id = ? AND c.semester_id = ? AND q.status IN ('PUBLISHED', 'CLOSED')
                 ORDER BY q.end_time DESC, q.created_at DESC
             ");
             $stmt->execute([$departmentId, $semesterId]);
@@ -371,5 +461,27 @@ class QuizController {
             error_log("DB Error fetching student quizzes: " . $e->getMessage());
             return [];
         }
+    }
+
+    /**
+     * Check if a student can view the results for a quiz.
+     * Results are released only after the faculty closes the quiz (status = 'CLOSED')
+     * or after the quiz deadline (end_time) has passed.
+     */
+    public function canViewResults(array $quiz): bool {
+        // 1. Explicitly closed by faculty
+        if (($quiz['status'] ?? '') === 'CLOSED') {
+            return true;
+        }
+
+        // 2. Deadline has passed
+        if (!empty($quiz['end_time']) && $quiz['end_time'] !== '0000-00-00 00:00:00') {
+            $endTs = strtotime($quiz['end_time']);
+            if ($endTs !== false && $endTs <= time()) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

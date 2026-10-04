@@ -100,7 +100,7 @@ $totalAttRecords = (int)($attStats['total_records'] ?? 0);
 $totalSessions = (int)($attStats['total_sessions'] ?? 0);
 $presentCount = (int)($attStats['present_count'] ?? 0);
 $lateCount = (int)($attStats['late_count'] ?? 0);
-$attendanceRate = $totalAttRecords > 0 ? round((($presentCount + $lateCount) / $totalAttRecords) * 100) : 0;
+$attendanceRate = $totalAttRecords > 0 ? round((($presentCount + ($lateCount * 0.5)) / $totalAttRecords) * 100) : 0; // Option B: 1 late = 0.5 presence
 
 // 5. Assignments & Pending Submissions
 $assignmentsCount = (int)$db->query("SELECT COUNT(*) FROM assignments WHERE faculty_id = " . (int)$facultyProfileId)->fetchColumn();

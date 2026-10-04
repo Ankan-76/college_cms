@@ -526,7 +526,7 @@ function initStudentCharts() {
                                 const lines = [` Attendance: ${context.parsed.y}%`];
                                 if (item) {
                                     lines.push(` Present: ${item.present}/${item.total} classes`);
-                                    if (item.late > 0) lines.push(` Late: ${item.late}`);
+                                    if (item.late > 0) lines.push(` Late: ${item.late} (0.5x credit)`);
                                     lines.push(` Status: ${context.parsed.y >= 75 ? 'Safe (Eligible)' : 'Attendance Low'}`);
                                 }
                                 return lines;
@@ -760,7 +760,7 @@ function initMyAttendanceCharts() {
                                 const lines = [` Attendance Rate: ${context.parsed.y}%`];
                                 if (item) {
                                     lines.push(` Attended: ${item.present}/${item.total} sessions`);
-                                    if (item.late > 0) lines.push(` Late Arrivals: ${item.late}`);
+                                    if (item.late > 0) lines.push(` Late: ${item.late} (0.5x credit)`);
                                     if (item.absent > 0) lines.push(` Absent: ${item.absent}`);
                                     lines.push(` Exam Standing: ${context.parsed.y >= 75 ? 'Eligible (Satisfactory)' : 'Attendance Low (< 75%)'}`);
                                 }
@@ -1024,7 +1024,7 @@ function initFacultyAttendanceReportCharts() {
                                 const lines = [` Attendance Rate: ${ctx.parsed.y}%`];
                                 if (item) {
                                     lines.push(` Attended: ${item.present}/${item.total} classes`);
-                                    if (item.late > 0) lines.push(` Late: ${item.late}`);
+                                    if (item.late > 0) lines.push(` Late: ${item.late} (0.5x credit)`);
                                     if (item.absent > 0) lines.push(` Absent: ${item.absent}`);
                                     lines.push(` Standing: ${ctx.parsed.y >= 75 ? 'Eligible for Exams' : (ctx.parsed.y >= 60 ? 'Warning (60-74%)' : 'Critical Shortage (<60%)')}`);
                                 }

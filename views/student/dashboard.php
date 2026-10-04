@@ -78,7 +78,7 @@ $totalRecords = (int)($attData['total_records'] ?? 0);
 $presentCount = (int)($attData['present_count'] ?? 0);
 $lateCount = (int)($attData['late_count'] ?? 0);
 $absentCount = (int)($attData['absent_count'] ?? 0);
-$effectivePresent = $presentCount + $lateCount;
+$effectivePresent = $presentCount + ($lateCount * 0.5); // Option B: 1 late = 0.5 presence
 $overallAttendance = $totalRecords > 0 ? round(($effectivePresent / $totalRecords) * 100) : 100;
 
 // Subject-wise attendance calculation
@@ -286,8 +286,10 @@ $attDetails = [];
 foreach ($subjectAttendanceList as $sub) {
     $attLabels[] = $sub['course_code'];
     $subTotal = (int)$sub['total_sessions'];
-    $subPres = (int)$sub['present_count'] + (int)$sub['late_count'];
-    $subPct = $subTotal > 0 ? round(($subPres / $subTotal) * 100) : 100;
+    $subPres = (int)$sub['present_count'];
+    $subLate = (int)$sub['late_count'];
+    $subEffectivePres = $subPres + ($subLate * 0.5); // Option B: 1 late = 0.5 presence
+    $subPct = $subTotal > 0 ? round(($subEffectivePres / $subTotal) * 100) : 100;
     $attDataPoints[] = $subPct;
     $attDetails[] = [
         'code' => $sub['course_code'],
@@ -295,7 +297,8 @@ foreach ($subjectAttendanceList as $sub) {
         'credits' => $sub['credits'] ?? '',
         'total' => $subTotal,
         'present' => $subPres,
-        'late' => (int)$sub['late_count'],
+        'late' => $subLate,
+        'effective_present' => $subEffectivePres,
         'absent' => (int)$sub['absent_count'],
         'pct' => $subPct
     ];

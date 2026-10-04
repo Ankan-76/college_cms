@@ -111,10 +111,11 @@ if ($selectedCourseId) {
         $sumPct = 0;
         foreach ($stats as $st) {
             $tClasses = (int) $st['total_classes'];
-            $stPresent = (int) $st['total_present'] + (int) $st['total_late'];
+            $stPresentOnTime = (int) $st['total_present'];
             $stLate = (int) $st['total_late'];
             $stAbsent = (int) $st['total_absent'];
-            $stPct = $tClasses > 0 ? round(($stPresent / $tClasses) * 100, 1) : 0;
+            $stEffectivePresent = $stPresentOnTime + ($stLate * 0.5); // Option B: 1 late = 0.5 presence
+            $stPct = $tClasses > 0 ? round(($stEffectivePresent / $tClasses) * 100, 1) : 0;
             $sumPct += $stPct;
 
             if ($stPct >= 75) {
@@ -132,8 +133,9 @@ if ($selectedCourseId) {
             $studentChartDetails[] = [
                 'name' => $name,
                 'roll' => $roll,
-                'present' => $stPresent,
+                'present' => $stPresentOnTime,
                 'late' => $stLate,
+                'effective_present' => $stEffectivePresent,
                 'absent' => $stAbsent,
                 'total' => $tClasses,
                 'pct' => $stPct
@@ -505,6 +507,7 @@ if ($selectedCourseId) {
                                     <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Student Name</th>
                                     <th scope="col" class="px-6 py-3 text-center text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Classes</th>
                                     <th scope="col" class="px-6 py-3 text-center text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Present</th>
+                                    <th scope="col" class="px-6 py-3 text-center text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Late (0.5x)</th>
                                     <th scope="col" class="px-6 py-3 text-center text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Absent</th>
                                     <th scope="col" class="px-6 py-3 text-center text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider col-percentage">Percentage</th>
                                 </tr>
@@ -512,10 +515,12 @@ if ($selectedCourseId) {
                             <tbody class="bg-white dark:bg-slate-800 divide-y divide-slate-100 dark:divide-slate-700/50">
                                 <?php foreach ($stats as $student): 
                                     $totalClasses = (int) $student['total_classes'];
-                                    $present = (int) $student['total_present'] + (int) $student['total_late']; // late counted with present
+                                    $present = (int) $student['total_present'];
+                                    $late = (int) $student['total_late'];
                                     $absent = (int) $student['total_absent'];
+                                    $effectivePresent = $present + ($late * 0.5); // Option B: 1 late counts as 0.5 presence
                                     
-                                    $percentage = $totalClasses > 0 ? round(($present / $totalClasses) * 100, 2) : 0;
+                                    $percentage = $totalClasses > 0 ? round(($effectivePresent / $totalClasses) * 100, 2) : 0;
                                     
                                     // Badge color and semantic print status class based on percentage
                                     $badgeClass = 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400';
@@ -541,6 +546,9 @@ if ($selectedCourseId) {
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-center text-sm text-emerald-600 dark:text-emerald-400 font-bold">
                                         <?= $present ?>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-center text-sm text-amber-600 dark:text-amber-400 font-bold">
+                                        <?= $late ?>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-center text-sm text-rose-600 dark:text-rose-400 font-bold">
                                         <?= $absent ?>

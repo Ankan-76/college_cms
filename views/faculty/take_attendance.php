@@ -272,13 +272,21 @@ if ($selectedCourseId) {
                             <i data-lucide="clipboard-list" class="w-5 h-5 text-indigo-500"></i>
                             Mark Attendance - <span class="text-indigo-600 dark:text-indigo-400"><?= date('M d, Y', strtotime($selectedDate)) ?></span>
                         </h2>
-                        <div class="flex gap-3 bg-white dark:bg-slate-700 p-1.5 rounded-lg border border-slate-200 dark:border-slate-600 shadow-sm">
-                            <button type="button" onclick="markBulk('PRESENT')" class="text-sm text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/40 font-medium px-3 py-1.5 rounded-md transition-all outline-none flex items-center gap-1">
+                        <div class="flex flex-wrap items-center gap-2 bg-white dark:bg-slate-700 p-1.5 rounded-xl border border-slate-200 dark:border-slate-600 shadow-sm">
+                            <button type="button" onclick="markBulk('PRESENT')" class="text-xs sm:text-sm text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/40 font-semibold px-2.5 py-1.5 rounded-lg transition-all outline-none flex items-center gap-1.5" title="Mark all students Present (1.0 credit)">
                                 <i data-lucide="check-circle-2" class="w-4 h-4"></i> All Present
                             </button>
-                            <div class="w-px bg-slate-200 dark:bg-slate-600"></div>
-                            <button type="button" onclick="markBulk('ABSENT')" class="text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/40 font-medium px-3 py-1.5 rounded-md transition-all outline-none flex items-center gap-1">
+                            <div class="w-px h-4 bg-slate-200 dark:bg-slate-600"></div>
+                            <button type="button" onclick="markBulk('LATE')" class="text-xs sm:text-sm text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/40 font-semibold px-2.5 py-1.5 rounded-lg transition-all outline-none flex items-center gap-1.5" title="Mark all students Late (0.5 credit)">
+                                <i data-lucide="clock" class="w-4 h-4"></i> All Late
+                            </button>
+                            <div class="w-px h-4 bg-slate-200 dark:bg-slate-600"></div>
+                            <button type="button" onclick="markBulk('ABSENT')" class="text-xs sm:text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/40 font-semibold px-2.5 py-1.5 rounded-lg transition-all outline-none flex items-center gap-1.5" title="Mark all students Absent (0.0 credit)">
                                 <i data-lucide="x-circle" class="w-4 h-4"></i> All Absent
+                            </button>
+                            <div class="w-px h-4 bg-slate-200 dark:bg-slate-600"></div>
+                            <button type="button" onclick="resetAttendance()" class="text-xs sm:text-sm text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-600/50 font-medium px-2.5 py-1.5 rounded-lg transition-all outline-none flex items-center gap-1.5" title="Reset all attendance selections">
+                                <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> Reset
                             </button>
                         </div>
                     </div>
@@ -296,7 +304,14 @@ if ($selectedCourseId) {
                                     <tr>
                                         <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider w-32">Roll No</th>
                                         <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Student Profile</th>
-                                        <th scope="col" class="px-6 py-4 text-center text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider w-48">Status Action</th>
+                                        <th scope="col" class="px-6 py-4 text-center text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider w-64">
+                                            <span class="block">Attendance Status</span>
+                                            <span class="inline-flex items-center gap-2.5 text-[10px] font-semibold text-slate-400 lowercase tracking-normal mt-0.5">
+                                                <span class="text-emerald-600 dark:text-emerald-400 font-bold uppercase">P: 1.0</span> &bull; 
+                                                <span class="text-amber-600 dark:text-amber-400 font-bold uppercase">L: 0.5</span> &bull; 
+                                                <span class="text-rose-600 dark:text-rose-400 font-bold uppercase">A: 0.0</span>
+                                            </span>
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody class="bg-white dark:bg-slate-800 divide-y divide-slate-100 dark:divide-slate-700/50">
@@ -317,21 +332,32 @@ if ($selectedCourseId) {
                                             </div>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
-                                            <div class="flex justify-center items-center gap-6">
+                                            <div class="flex justify-center items-center gap-5">
                                                 <!-- Present Radio Option -->
-                                                <label class="flex flex-col items-center cursor-pointer group/present hover:-translate-y-0.5 transition-transform">
+                                                <label class="flex flex-col items-center cursor-pointer group/present hover:-translate-y-0.5 transition-transform" title="Mark Present (1.0 Credit)">
                                                     <input type="radio" name="attendance[<?= $student['student_id'] ?>]" value="PRESENT" class="peer status-radio sr-only" required <?= (isset($student['attendance_status']) && $student['attendance_status'] === 'PRESENT') ? 'checked' : '' ?>>
                                                     <div class="w-9 h-9 rounded-full border-2 border-slate-300 dark:border-slate-600 flex items-center justify-center transition-all peer-checked:border-emerald-500 peer-checked:bg-emerald-50 peer-checked:text-emerald-600 dark:peer-checked:bg-emerald-500/20 dark:peer-checked:border-emerald-400 group-hover/present:border-emerald-400">
                                                         <i data-lucide="check" class="w-4 h-4 opacity-0 transition-all peer-checked:opacity-100 peer-checked:scale-110 rounded-indicator"></i>
                                                     </div>
+                                                    <span class="text-[10px] font-bold text-slate-400 group-hover/present:text-emerald-600 dark:group-hover/present:text-emerald-400 mt-1 uppercase">P</span>
+                                                </label>
+                                                
+                                                <!-- Late Radio Option -->
+                                                <label class="flex flex-col items-center cursor-pointer group/late hover:-translate-y-0.5 transition-transform" title="Mark Late (0.5 Credit)">
+                                                    <input type="radio" name="attendance[<?= $student['student_id'] ?>]" value="LATE" class="peer status-radio sr-only" required <?= (isset($student['attendance_status']) && $student['attendance_status'] === 'LATE') ? 'checked' : '' ?>>
+                                                    <div class="w-9 h-9 rounded-full border-2 border-slate-300 dark:border-slate-600 flex items-center justify-center transition-all peer-checked:border-amber-500 peer-checked:bg-amber-50 peer-checked:text-amber-600 dark:peer-checked:bg-amber-500/20 dark:peer-checked:border-amber-400 group-hover/late:border-amber-400">
+                                                        <i data-lucide="clock" class="w-4 h-4 opacity-0 transition-all peer-checked:opacity-100 peer-checked:scale-110 rounded-indicator"></i>
+                                                    </div>
+                                                    <span class="text-[10px] font-bold text-slate-400 group-hover/late:text-amber-600 dark:group-hover/late:text-amber-400 mt-1 uppercase">L</span>
                                                 </label>
                                                 
                                                 <!-- Absent Radio Option -->
-                                                <label class="flex flex-col items-center cursor-pointer group/absent hover:-translate-y-0.5 transition-transform">
+                                                <label class="flex flex-col items-center cursor-pointer group/absent hover:-translate-y-0.5 transition-transform" title="Mark Absent (0.0 Credit)">
                                                     <input type="radio" name="attendance[<?= $student['student_id'] ?>]" value="ABSENT" class="peer status-radio sr-only" required <?= (isset($student['attendance_status']) && $student['attendance_status'] === 'ABSENT') ? 'checked' : '' ?>>
                                                     <div class="w-9 h-9 rounded-full border-2 border-slate-300 dark:border-slate-600 flex items-center justify-center transition-all peer-checked:border-rose-500 peer-checked:bg-rose-50 peer-checked:text-rose-600 dark:peer-checked:bg-rose-500/20 dark:peer-checked:border-rose-400 group-hover/absent:border-rose-400">
                                                         <i data-lucide="x" class="w-4 h-4 opacity-0 transition-all peer-checked:opacity-100 peer-checked:scale-110 rounded-indicator"></i>
                                                     </div>
+                                                    <span class="text-[10px] font-bold text-slate-400 group-hover/absent:text-rose-600 dark:group-hover/absent:text-rose-400 mt-1 uppercase">A</span>
                                                 </label>
                                             </div>
                                         </td>
@@ -526,8 +552,29 @@ if ($selectedCourseId) {
             radio.dispatchEvent(new Event('change')); // trigger style sync
         });
         
-        if(count > 0 && typeof window.showToast === 'function') {
-            window.showToast(`Batch updated! Marked ${count} as ${status.charAt(0).toUpperCase() + status.slice(1).toLowerCase()}.`, 'info');
+        if (typeof window.showToast === 'function') {
+            const statusLabel = status === 'LATE' ? 'Late (0.5 credit)' : (status === 'PRESENT' ? 'Present (1.0 credit)' : 'Absent');
+            window.showToast(`Batch updated! Marked ${radios.length} students as ${statusLabel}.`, 'info');
+        }
+    }
+
+    // Helper to reset/clear all attendance selections
+    function resetAttendance() {
+        const radios = document.querySelectorAll('.status-radio');
+        radios.forEach(radio => {
+            radio.checked = false;
+            const container = radio.nextElementSibling;
+            if (container) {
+                const icon = container.querySelector('.rounded-indicator');
+                if (icon) {
+                    icon.classList.add('opacity-0');
+                    icon.classList.remove('opacity-100', 'scale-110');
+                }
+            }
+        });
+        
+        if (typeof window.showToast === 'function') {
+            window.showToast('Attendance selections cleared. You can mark individually or use quick actions.', 'info');
         }
     }
 </script>

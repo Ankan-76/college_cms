@@ -49,7 +49,8 @@ foreach ($courseAttendance as $ca) {
     $cPres = (int)$ca['present_count'];
     $cLate = (int)$ca['late_count'];
     $cAbs = (int)$ca['absent_count'];
-    $cPct = $cTotal > 0 ? round(($cPres + $cLate) / $cTotal * 100) : 100;
+    $cEffectivePres = $cPres + ($cLate * 0.5); // Option B: 1 late = 0.5 presence
+    $cPct = $cTotal > 0 ? round(($cEffectivePres) / $cTotal * 100) : 100;
 
     $overallTotal += $cTotal;
     $overallPresent += $cPres;
@@ -71,12 +72,13 @@ foreach ($courseAttendance as $ca) {
         'total' => $cTotal,
         'present' => $cPres,
         'late' => $cLate,
+        'effective_present' => $cEffectivePres,
         'absent' => $cAbs,
         'pct' => $cPct
     ];
 }
 
-$effectivePresent = $overallPresent + $overallLate;
+$effectivePresent = $overallPresent + ($overallLate * 0.5); // Option B: 1 late = 0.5 presence
 $overallPct = $overallTotal > 0 ? round(($effectivePresent / $overallTotal) * 100) : 100;
 
 // Smart Attendance Advisory Calculation
@@ -202,9 +204,9 @@ require_once __DIR__ . '/../../includes/header.php';
                 <div class="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto mb-2">
                     <i data-lucide="user-check" class="w-4 h-4"></i>
                 </div>
-                <p class="text-[10px] sm:text-xs font-bold text-emerald-500 uppercase tracking-wider mb-1">Attended</p>
-                <p class="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400"><?= $effectivePresent ?></p>
-                <p class="text-[11px] text-slate-400 mt-1"><?= $overallPresent ?> Pres • <?= $overallLate ?> Late</p>
+                <p class="text-[10px] sm:text-xs font-bold text-emerald-500 uppercase tracking-wider mb-1">Attended (Credits)</p>
+                <p class="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400"><?= (float)$effectivePresent ?></p>
+                <p class="text-[11px] text-slate-400 mt-1"><?= $overallPresent ?> Pres • <?= $overallLate ?> Late (0.5x)</p>
             </div>
 
             <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-4 sm:p-5 text-center transition-all hover:border-rose-300 dark:hover:border-rose-800">
@@ -339,7 +341,7 @@ require_once __DIR__ . '/../../includes/header.php';
                         $present = (int) $course['present_count'];
                         $late = (int) $course['late_count'];
                         $absent = (int) $course['absent_count'];
-                        $effectiveCoursePres = $present + $late;
+                        $effectiveCoursePres = $present + ($late * 0.5); // Option B: 1 late = 0.5 presence
                         $pct = $total > 0 ? round(($effectiveCoursePres) / $total * 100) : 100;
                         $color = $pct >= 75 ? 'emerald' : ($pct >= 50 ? 'amber' : 'rose');
                         $isSafe = $pct >= 75;

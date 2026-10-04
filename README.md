@@ -205,12 +205,20 @@ The Faculty Portal provides educators with an intuitive digital workstation to m
 - **Attendance Management & Reports Suite (`take_attendance.php`, `view_attendance.php`):** 
   - *3-Tier Department & Semester Cascading Filters:* Instructors can filter by **Department** and **Semester** before selecting the target **Subject / Course**, greatly simplifying roster loading and reporting for faculty teaching across multiple programs.
   - *Smart Context Inference & State Preservation:* Directly navigating or toggling between *Take Attendance* and *View Attendance* automatically infers Department and Semester from the selected `course_id`, preserving active filters and lecture dates across submissions and transitions.
-  - *Smart Attendance Ledger (`take_attendance.php`):* Step-by-step roster setup (1: Department → 2: Semester → 3: Subject → 4: Lecture Date), single-click radio toggles (`PRESENT`, `ABSENT`, `LATE`), quick bulk marking buttons, and guided empty state prompt.
+  - *Smart Attendance Ledger (`take_attendance.php`):* Step-by-step roster setup (1: Department → 2: Semester → 3: Subject → 4: Lecture Date) with guided empty state prompts. Features single-click micro-animated radio toggles for each student:
+    - **Present (P):** 1.0 full presence credit (Emerald check icon).
+    - **Late (L):** 0.5 partial credit (Amber clock icon).
+    - **Absent (A):** 0.0 credit (Rose cross icon).
+  - *Ledger Quick Actions & Reset Toolbar:* Rapid batch-marking buttons including **All Present**, **All Late**, **All Absent**, and an instant **Reset** button to clear all selections for fresh re-entry.
+  - *Partial Credit Attendance Policy (Option B):* Institutional calculation where 1 late arrival equals 0.5 presence:
+    $$\text{Effective Present} = \text{Present} + (\text{Late} \times 0.5)$$
+    $$\text{Attendance Rate } \% = \frac{\text{Effective Present}}{\text{Total Classes}} \times 100$$
   - *Cumulative Attendance Analytics & Visual Intelligence (`view_attendance.php`):* 
+    - **Dedicated Late Column:** The attendance ledger table includes an explicit **Late (0.5x)** column between Present and Absent with amber indicators, giving faculty instant visibility into punctuality patterns.
     - **Summary KPI Metric Cards:** 4 responsive overview metrics for Total Enrolled Students, Class Average Attendance Rate %, Exam Eligible Students count ($\ge 75\%$), and At-Risk Shortage count ($< 75\%$).
     - **Student Attendance Comparison Bar Chart:** Student-by-student comparative bar chart with color-coded rate fills ($\ge 75\%$ Emerald, $60-74\%$ Amber, $< 60\%$ Rose) and an explicit **75% Statutory Exam Criterion Benchmark Line** across the canvas.
     - **Class Eligibility Distribution Doughnut Chart:** Breakdown across statutory exam qualification tiers (Safe $\ge 75\%$, Warning $60-74\%$, Critical $< 60\%$) featuring a responsive center-text metric plugin displaying Class Average % and health status.
-    - **Multi-Format Export & Print Compatibility:** Instant client-side **Export Charts as PDF** (`html2pdf.js`), raw ledger **CSV Spreadsheet Export**, and executive **Black & White Print Report** mode that cleanly hides screen-only chart canvases for official paper records.
+    - **Multi-Format Export & Print Compatibility:** Instant client-side **Export Charts as PDF** (`html2pdf.js`), raw ledger **CSV Spreadsheet Export** (incorporating Late counts and Option B percentages), and executive **Black & White Print Report** mode that cleanly hides screen-only chart canvases for official paper records.
 - **Assessment Lifecycle & Comprehensive Grading Suite:** 
   - *Assignment Creation & Editing (`assignments.php`):* Instructors can author coursework with detailed instructions, attachments, maximum marks, and strict due dates. Existing assignments can be edited at any time to extend deadlines, adjust marks weighting, update instructions, switch between draft/published statuses, and replace attached reference files.
   - *Submissions Evaluation Suite (`view_submissions.php`):* View all student submissions categorized by status (`All`, `Pending`, `Graded`, `Late`). Instructors can review submitted files online or download them, assign scores (with full zero-delta support for assigning 0 marks), and provide personalized qualitative feedback remarks.
@@ -285,9 +293,12 @@ The Student Portal empowers learners with self-service academic tracking, lectur
 
 #### Key Capabilities & Responsive Architecture:
 - **Interactive Visual Attendance Analytics Suite (`my_attendance.php` & `dashboard.php`):**
+  - *Partial Credit Calculation (Option B):* Evaluates student attendance rates with 0.5 credit for late arrivals ($\text{Effective Present} = \text{Present} + (\text{Late} \times 0.5)$), accurately tracking credit tallies and exam qualification.
+  - *Attended Credits Metric Card:* Displays effective attended credits with clear breakdown subtext (e.g. `X Pres • Y Late (0.5x)`), eliminating ambiguity between total raw sessions attended and actual accredited presence.
   - *Subject-Wise Attendance Bar Chart with 75% Benchmark:* Interactive comparison of attendance rates across all enrolled courses with dynamic gradient coloring (Emerald $\ge 75\%$, Amber $50-74\%$, Rose $< 50\%$) and an explicit **75% Exam Criterion Benchmark Line** drawn across the canvas to instantly identify deficient subjects.
   - *Overall Session Status Doughnut Chart:* Proportional distribution of Present, Late, and Absent sessions with center-metric text displaying overall attendance percentage and real-time eligibility standing badge (`SAFE / ELIGIBLE` vs `DEFICIT`).
-  - *Actionable Attendance Advisory Engine:* Automatically projects how many consecutive classes must be attended to restore 75% standing or how many sessions can safely be missed without compromising exam eligibility.
+  - *Actionable Attendance Advisory Engine:* Automatically projects how many consecutive classes must be attended to restore 75% standing or how many sessions can safely be missed without compromising exam eligibility, factoring in partial credits.
+  - *Interactive Chart Tooltips:* Enhanced Tooltips across student and faculty dashboards showing Present, Late ($0.5\times$ credit), Absent, and statutory qualification status.
   - *Multi-Format Export & Print Suite:* 1-click export to PDF (`html2pdf.js`), detailed Excel workbook (`SheetJS XLSX` with full subject codes, names, credits, class tallies, and eligibility status), and formatted printer-friendly view.
   - *Zero-Flicker Dark Mode Reactivity:* Chart.js instances react instantly to theme toggling via `MutationObserver` with tailored dark/light color palettes, grid lines, and tooltips.
 - **Mobile-First Responsive UI Architecture:** The entire student portal has been comprehensively overhauled for optimal usability on mobile smartphones (down to 320px screen width), tablets, and desktops. Uses responsive column stacking (`flex-col sm:flex-row`), flex-wrapping metadata tags (`flex-wrap gap-x-2 gap-y-1`), and dedicated full-width action toolbars to prevent button squishing and text truncation.

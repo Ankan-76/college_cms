@@ -86,12 +86,12 @@ require_once __DIR__ . '/../../includes/header.php';
         <div class="flex items-center justify-between gap-4">
             <div>
                 <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
-                    <i data-lucide="edit" class="w-6 h-6 text-indigo-500"></i> Edit Assignment
+                    <i data-lucide="edit" class="w-6 h-6 text-indigo-500"></i> Edit Allocation
                 </h1>
-                <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Modify an existing course assignment.</p>
+                <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Modify an existing subject allocation.</p>
             </div>
             <a href="subject_assignments.php" class="text-sm font-semibold text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 flex items-center gap-1">
-                <i data-lucide="arrow-left" class="w-4 h-4"></i> Back to Assignments
+                <i data-lucide="arrow-left" class="w-4 h-4"></i> Back to Allocations
             </a>
         </div>
 

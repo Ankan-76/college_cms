@@ -45,10 +45,10 @@ require_once __DIR__ . '/../../includes/header.php';
     <div class="max-w-4xl mx-auto space-y-6">
         <div class="flex items-center justify-between mb-4">
             <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
-                <i data-lucide="clipboard-check" class="w-6 h-6 text-indigo-500"></i> Subject Assignment Details
+                <i data-lucide="clipboard-check" class="w-6 h-6 text-indigo-500"></i> Subject Allocation Details
             </h1>
             <a href="subject_assignments.php" class="text-sm font-medium text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 flex items-center gap-1 transition-colors">
-                <i data-lucide="arrow-left" class="w-4 h-4"></i> Back to Assignments
+                <i data-lucide="arrow-left" class="w-4 h-4"></i> Back to Allocations
             </a>
         </div>
         

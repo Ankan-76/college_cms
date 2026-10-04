@@ -6,6 +6,7 @@ require_once __DIR__ . '/../../config/database.php';
 
 require_role('ADMIN');
 require_once __DIR__ . '/../../includes/permission_middleware.php';
+require_once __DIR__ . '/../../includes/mailer.php';
 require_permission('students');
 $pageTitle = 'Add Student | College Management System';
 
@@ -42,8 +43,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt = $db->prepare("INSERT INTO students (name, email, password_hash, phone, department_id, semester_id, roll_number, registration_number, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'ACTIVE')");
                 $stmt->execute([$name, $email, $password_hash, $phone, $department_id, $semester_id, $roll_number, $registration_number]);
 
-                header('Location: students.php');
-                exit;
+                // Resolve department name and semester number for email
+                $deptName = 'Department of Study';
+                $semNum = "Semester {$semester_id}";
+                foreach ($departments as $d) {
+                    if ($d['id'] == $department_id) {
+                        $deptName = $d['dept_name'];
+                        break;
+                    }
+                }
+                foreach ($semesters as $s) {
+                    if ($s['id'] == $semester_id) {
+                        $semNum = "Semester " . $s['semester_number'];
+                        break;
+                    }
+                }
+
+                // Dispatch credentials email
+                $mailSuccess = send_account_credentials_email(
+                    $email,
+                    $name,
+                    $password,
+                    'Enrolled Student',
+                    'student',
+                    [
+                        'Department'          => $deptName,
+                        'Semester'            => $semNum,
+                        'University Roll No'  => $roll_number,
+                        'Registration No'     => $registration_number,
+                        'Phone Number'        => $phone ?: 'Not Provided'
+                    ]
+                );
+
+                if ($mailSuccess) {
+                    set_flash_message("Student '{$name}' enrolled successfully. Login credentials sent to {$email}.", 'success');
+                } else {
+                    set_flash_message("Student '{$name}' enrolled successfully, but credentials email could not be delivered. Please share login details manually.", 'warning');
+                }
+
+                redirect('/views/admin/students.php');
             } catch (Exception $e) {
                 $error = 'Error adding student.';
             }

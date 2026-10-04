@@ -6,6 +6,7 @@ require_once __DIR__ . '/../../config/database.php';
 
 require_role('ADMIN');
 require_once __DIR__ . '/../../includes/permission_middleware.php';
+require_once __DIR__ . '/../../includes/mailer.php';
 require_permission('faculty');
 $pageTitle = 'Add Faculty | College Management System';
 
@@ -65,8 +66,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $deptStmt->execute([$teacher_id, $dept_id]);
                 }
 
-                header('Location: faculty.php');
-                exit;
+                // Resolve department names for email
+                $deptNames = [];
+                if (!empty($department_ids)) {
+                    $placeholders = implode(',', array_fill(0, count($department_ids), '?'));
+                    $dStmt = $db->prepare("SELECT dept_name FROM departments WHERE id IN ($placeholders)");
+                    $dStmt->execute($department_ids);
+                    $deptNames = $dStmt->fetchAll(\PDO::FETCH_COLUMN);
+                }
+                $deptString = !empty($deptNames) ? implode(', ', $deptNames) : 'General Faculty';
+
+                // Dispatch credentials email
+                $mailSuccess = send_account_credentials_email(
+                    $email,
+                    $name,
+                    $password,
+                    $designation,
+                    'faculty',
+                    [
+                        'Designation'    => $designation,
+                        'Department(s)'  => $deptString,
+                        'Qualification'  => $qualification,
+                        'Phone Number'   => $phone ?: 'Not Provided'
+                    ]
+                );
+
+                if ($mailSuccess) {
+                    set_flash_message("Faculty member '{$name}' onboarded successfully. Login credentials sent to {$email}.", 'success');
+                } else {
+                    set_flash_message("Faculty member '{$name}' onboarded successfully, but credentials email could not be delivered. Please share login details manually.", 'warning');
+                }
+
+                redirect('/views/admin/faculty.php');
             } catch (Exception $e) {
                 $error = 'Error adding faculty member.';
             }

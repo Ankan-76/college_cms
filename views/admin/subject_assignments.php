@@ -7,7 +7,7 @@ require_once __DIR__ . '/../../config/database.php';
 require_role('ADMIN');
 require_once __DIR__ . '/../../includes/permission_middleware.php';
 require_permission('subject_assignments');
-$pageTitle = 'Course Assignments | College Management System';
+$pageTitle = 'Subject Allocation | College Management System';
 
 use Config\Database;
 $db = Database::getInstance()->getConnection();
@@ -35,12 +35,12 @@ require_once __DIR__ . '/../../includes/header.php';
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
                 <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
-                    <i data-lucide="clipboard-list" class="w-6 h-6 text-indigo-500"></i> Course Assignments
+                    <i data-lucide="clipboard-list" class="w-6 h-6 text-indigo-500"></i> Subject Allocation
                 </h1>
                 <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Manage which faculty members teach which courses.</p>
             </div>
             <a href="assign-subject.php" class="inline-flex items-center gap-2 bg-primary hover:bg-indigo-700 text-white px-4 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-sm focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-900 hover:-translate-y-0.5">
-                <i data-lucide="plus-circle" class="w-4 h-4"></i> New Assignment
+                <i data-lucide="plus-circle" class="w-4 h-4"></i> Assign Subject
             </a>
         </div>
 

@@ -22,7 +22,7 @@
   - [4.2 Faculty Portal & Modern Faculty Dashboard](#42-faculty-portal--modern-faculty-dashboard)
   - [4.3 Student Portal & Modern Academic Dashboard](#43-student-portal--modern-academic-dashboard)
   - [4.4 Public & Prospective Student Features](#44-public--prospective-student-features)
-  - [4.5 Unified Responsive Navigation & Mobile Header Engine](#45-unified-responsive-navigation--mobile-header-engine)
+  - [4.5 Unified Responsive Navigation, Profile Links & Portal Footers](#45-unified-responsive-navigation-profile-links--portal-footers)
 - [5. Advanced Communication & Messaging Engine](#5-advanced-communication--messaging-engine)
 - [6. Security & Integrity Framework](#6-security--integrity-framework)
 - [7. Database Schema & Data Modeling](#7-database-schema--data-modeling)
@@ -76,6 +76,7 @@ graph TD
 
     subgraph Service_Layers[Integration & External Services]
         AuthC --> Mailer[PHPMailer SMTP Engine]
+        AdminC --> MailerEngine[Enterprise Onboarding Mailer: mailer.php]
         QuizC --> JSONStore[JSON Schema Evaluator]
     end
 
@@ -114,7 +115,7 @@ graph TD
 | **Document Viewer** | **In-Browser Modal Viewer (`iframe`)** | Instant preview of PDFs, text files, and images without forced downloads |
 | **Document Processing** | **SheetJS (XLSX)**, **html2pdf.js** | Client-side export of student lists, rosters, and transcripts to Excel & PDF |
 | **Alerts & Modals** | **SweetAlert2** | Interactive toast notifications and operational confirmation modals |
-| **Email Protocol** | **PHPMailer (SMTP over TLS)** | Automated dispatch of 6-digit OTP codes for password recovery |
+| **Email Protocol** | **PHPMailer (SMTP over TLS)** | Automated dispatch of new user credentials upon creation & 6-digit OTP codes for password recovery |
 | **PWA Infrastructure** | **Service Workers (`sw.js`)**, **Web Manifest** | Offline asset caching, installable mobile app experience |
 
 ---
@@ -135,21 +136,23 @@ The Admin Portal provides institutional leadership and administrative personnel 
 ├── departments.php             # Academic department architecture
 ├── semesters.php               # Semester schedules and academic sessions
 ├── subjects.php                # Course catalog and credit values
-├── subject_assignments.php     # Faculty-to-Course allocations
+├── subject_assignments.php     # Faculty-to-Course allocations (Subject Allocation)
 ├── timetables.php              # Institutional master schedule builder
 ├── broadcasts.php              # Global, role-filtered, or targeted announcements
 ├── notices.php                 # Official college noticeboard manager
 ├── leave_requests.php          # Approval/rejection workflow for faculty & student leaves
 ├── admission-inquiries.php     # Prospective student inquiry CRM
 ├── view-feedback.php           # Feedback moderation & institutional rating reviews
-└── security_logs.php           # Real-time authentication security audit logs
+└── security_logs.php           # Real-time authentication surveillance matrix & audit telemetry
 ```
 
 #### Key Capabilities:
+- **Automated User Onboarding & Email Credentials Dispatch:** Provisioning new accounts across the institution (`add-admin.php`, `add-faculty.php`, `add-student.php`) automatically triggers an enterprise-styled, responsive HTML credentials dispatch via SMTP. Newly created personnel and students receive their designated portal type, registered login email, high-contrast temporary password, and security guidelines directly in their inbox with non-blocking error handling.
 - **Sub-Admin Delegation (Module Permissions):** The Super Admin can create secondary admin accounts and assign granular read/write rights across 15+ modules (`students`, `faculty`, `broadcasts`, `notices`, `security_logs`, etc.). Sub-admins without adequate permissions are immediately blocked via `permission_middleware.php`.
 - **Master Timetable Generator:** Schedules classes by department, semester, subject, instructor, weekday, and classroom room number.
 - **Institutional Broadcast Engine:** Broadcast critical messages with priorities (`NORMAL`, `URGENT`, `ACADEMIC`, `EVENT`), target filtering (`ALL`, `STUDENT`, `FACULTY`), and sticky pinning.
-- **Security Audit Matrix:** Logs all login attempts, capturing IP addresses, browser user-agent vectors, outcome (`GRANTED` / `BLOCKED`), and timestamps.
+- **Network Surveillance Matrix & Security Logs (`security_logs.php`):** Intrusion monitoring dashboard featuring visual role archetypes (Shield for Admins, Briefcase for Faculty, Cap for Students, Alert for Blocked/Unknown), live role tabs (`All`, `Admin`, `Faculty`, `Student`, `Blocked`), real-time text search, live telemetry stream KPI counters, and a responsive `table-fixed` grid layout guaranteeing complete, wrap-safe visibility of browser user-agent vectors without horizontal table clipping or layout shift.
+- **Subject Allocation Architecture (`subject_assignments.php`):** Cleanly allocates faculty members to course subjects across departments and semesters, clearly distinguishing academic subject allocations from student homework/coursework assignments.
 
 ---
 
@@ -322,11 +325,13 @@ The Student Portal empowers learners with self-service academic tracking, lectur
 
 ---
 
-### 4.5 Unified Responsive Navigation & Mobile Header Engine
-All three portals (Admin, Faculty, and Student) share a unified, mobile-first responsive header (`includes/header.php`) engineered to ensure zero visual distortion across all mobile viewport widths (down to 320px):
+### 4.5 Unified Responsive Navigation, Profile Links & Portal Footers
+All three portals (Admin, Faculty, and Student) share a unified, mobile-first responsive header (`includes/header.php`) and navigation system engineered to ensure zero visual distortion across all mobile viewport widths (down to 320px):
 
 - **Strict 1:1 Avatar Aspect-Ratio Integrity:** Employs explicit `.avatar-img` styling with `aspect-ratio: 1 / 1 !important; flex-shrink: 0 !important; min-width: 2rem; min-height: 2rem;` wrapped in a circular container (`w-8 h-8 sm:w-9 sm:h-9 shrink-0 aspect-square rounded-full overflow-hidden`). This completely eliminates horizontal profile picture distortion/squishing caused by flexbox compression on narrow smartphone displays.
 - **Dual-Layer Fail-Safe Avatar System:** Dynamically computes the user's uppercase initials (`AB`, `JD`, etc.) in PHP. If the remote UI avatar or profile image cannot be loaded or is delayed by network latency, an inline `onerror` trigger seamlessly switches to the high-contrast CSS initials avatar with zero layout shift.
+- **Interactive Dashboard Profile Pictures & Profile Navigation:** Dashboard headers across Admin, Faculty, and Student workspaces render real user profile photos (`uploads/profiles/`) with robust UI-Avatar fallbacks, wrapped in interactive hyperlinks routing directly to their profile viewer (`view-profile.php`).
+- **Role-Aware Unified Portal Footer (`main_footer.php`):** Delivers tailored footer navigation links (`Pages` and `More`) customized to the authenticated user's role (Admin, Faculty, or Student) and dynamically filtered by RBAC module permissions for sub-admins.
 - **Adaptive Horizontal Spacing & Heights:** Outer container padding scales cleanly (`px-3 sm:px-6 lg:px-8`), header height adjusts (`h-14 sm:h-16`), and internal flex gaps dynamically contract (`gap-1.5 sm:gap-2.5 md:gap-3.5`) to accommodate all action items without crowding.
 - **Responsive Mobile Action Buttons:** The logout control adapts as a compact `p-2` icon-only button on mobile and expands to a labeled button (`Log Out`) on tablet and desktop screens (`hidden md:inline`).
 - **Role-Aware Quick Navigation:** The branded `CMS` mobile logo and `GreenField College` desktop logo dynamically route back to the authenticated user's corresponding dashboard (`/views/admin/dashboard.php`, `/views/faculty/dashboard.php`, or `/views/student/dashboard.php`).
@@ -415,7 +420,9 @@ GFC CMS incorporates enterprise-level defensive engineering to safeguard sensiti
    - User table and submitted identifier.
    - Status: `GRANTED` or `BLOCKED`.
    - Client IP Address and User-Agent Browser Vector.
+   - Dedicated role archetypes and telemetry counters visualized in a responsive, wrap-safe layout.
 5. **Secure OTP Password Recovery:** Forgot-password workflows generate a cryptographically randomized 4-to-6 digit OTP, valid for exactly 10 minutes, dispatched via encrypted TLS SMTP through PHPMailer.
+6. **Automated Onboarding Credentials Dispatch & Transient Credential Safeguards:** When an administrator provisions a new user account, the initial password is encrypted via Argon2id into the database, while temporary credentials are securely dispatched directly to the recipient's verified mailbox via `includes/mailer.php`. Direct local URLs are decoupled to ensure seamless portability across offline networks, staging servers, and air-gapped intranet environments.
 
 ---
 
@@ -538,7 +545,8 @@ college_cms/
 │   ├── footer.php                   # Portal standard footer & JS inclusions
 │   ├── header.php                   # Mobile-responsive header, anti-squish avatar, Lucide icons, Dark theme
 │   ├── helpers.php                  # Global helpers (`sanitize`, `redirect`, `flash`)
-│   ├── main_footer.php              # Public landing page footer
+│   ├── mailer.php                   # Enterprise mail dispatch engine for account credentials & welcome onboarding
+│   ├── main_footer.php              # Role-aware portal & landing page footer with RBAC links
 │   ├── permission_middleware.php    # Granular RBAC validation (`require_permission`)
 │   └── sidebar.php                  # Dynamic role & module-filtered navigation sidebar
 ├── uploads/                         # Secure Storage for User-Uploaded Files

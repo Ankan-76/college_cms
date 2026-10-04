@@ -67,10 +67,16 @@ require_once __DIR__ . '/../../includes/header.php';
         <?php 
         $flash = get_flash_message();
         if ($flash): 
-            $bgClass = $flash['type'] === 'success' 
-                ? 'bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800' 
-                : 'bg-rose-50 text-rose-800 border-rose-200 dark:bg-rose-900/30 dark:text-rose-400 dark:border-rose-800';
-            $icon = $flash['type'] === 'success' ? 'check-circle' : 'alert-circle';
+            if ($flash['type'] === 'success') {
+                $bgClass = 'bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800';
+                $icon = 'check-circle';
+            } elseif ($flash['type'] === 'warning') {
+                $bgClass = 'bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800';
+                $icon = 'alert-triangle';
+            } else {
+                $bgClass = 'bg-rose-50 text-rose-800 border-rose-200 dark:bg-rose-900/30 dark:text-rose-400 dark:border-rose-800';
+                $icon = 'alert-circle';
+            }
         ?>
             <div class="p-4 rounded-xl border flex items-start gap-3 <?= $bgClass ?>">
                 <i data-lucide="<?= $icon ?>" class="w-5 h-5 shrink-0 mt-0.5"></i>

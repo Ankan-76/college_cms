@@ -11,6 +11,18 @@ $pageTitle = 'Admin Dashboard | College Management System';
 
 use Config\Database;
 $db = Database::getInstance()->getConnection();
+$base = defined('BASE_URL') ? BASE_URL : '/college_cms';
+
+$adminId = (int)($_SESSION['user_id'] ?? 0);
+$adminUserStmt = $db->prepare("SELECT id, name, email, profile_pic, role FROM admins WHERE id = ?");
+$adminUserStmt->execute([$adminId]);
+$adminUser = $adminUserStmt->fetch(PDO::FETCH_ASSOC) ?: [];
+
+$adminName = $adminUser['name'] ?? $_SESSION['name'] ?? $_SESSION['user_name'] ?? 'Admin';
+$adminProfilePic = $adminUser['profile_pic'] ?? $_SESSION['profile_pic'] ?? '';
+$adminPicUrl = (!empty($adminProfilePic) && file_exists(__DIR__ . '/../../uploads/profiles/' . $adminProfilePic))
+    ? $base . '/uploads/profiles/' . htmlspecialchars($adminProfilePic)
+    : "https://ui-avatars.com/api/?name=" . urlencode($adminName) . "&background=4f46e5&color=fff&bold=true&size=256";
 
 // System Operational Metrics
 $metrics = [
@@ -115,13 +127,18 @@ require_once __DIR__ . '/../../includes/header.php';
             <div class="relative z-10 p-6 sm:p-8 lg:p-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
                 <!-- User Info & Intro -->
                 <div class="flex items-start sm:items-center gap-4">
-                    <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-tr from-indigo-600 to-purple-600 text-white flex items-center justify-center font-black text-xl sm:text-2xl shadow-lg shadow-indigo-500/30 shrink-0 border-2 border-white/20">
-                        <?= strtoupper(substr($_SESSION['user_name'] ?? 'A', 0, 1)) ?>
-                    </div>
+                    <a href="<?= $base ?>/views/admin/view-profile.php" class="relative shrink-0 group block focus:outline-none focus:ring-4 focus:ring-indigo-500/50 rounded-2xl transition-all transform hover:scale-105" title="View Profile (<?= htmlspecialchars($adminName) ?>)">
+                        <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-tr from-indigo-600 to-purple-600 text-white flex items-center justify-center shadow-lg shadow-indigo-500/30 overflow-hidden ring-4 ring-white/70 dark:ring-slate-700/70 group-hover:ring-indigo-400 border-2 border-white/20 transition-all relative">
+                            <img src="<?= $adminPicUrl ?>" alt="<?= htmlspecialchars($adminName) ?>" class="w-full h-full object-cover rounded-2xl transition-transform duration-300 group-hover:scale-110" onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name=<?= urlencode($adminName) ?>&background=4f46e5&color=fff&bold=true&size=256';">
+                            <div class="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center text-white backdrop-blur-[1px]">
+                                <i data-lucide="user" class="w-5 h-5 sm:w-6 sm:h-6 drop-shadow"></i>
+                            </div>
+                        </div>
+                    </a>
                     <div>
                         <div class="flex flex-wrap items-center gap-2 mb-1">
                             <h1 class="text-2xl sm:text-3xl font-black tracking-tight text-slate-900 dark:text-white">
-                                Welcome Back, <?= htmlspecialchars($_SESSION['user_name'] ?? 'Admin') ?>!
+                                Welcome Back, <?= htmlspecialchars($_SESSION['user_name'] ?? $adminName) ?>!
                             </h1>
                             <span class="inline-block text-xl animate-bounce">👋</span>
                         </div>

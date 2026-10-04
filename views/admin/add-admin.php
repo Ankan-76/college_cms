@@ -6,6 +6,7 @@ require_once __DIR__ . '/../../includes/permission_middleware.php';
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../includes/helpers.php';
 require_once __DIR__ . '/../../includes/csrf.php';
+require_once __DIR__ . '/../../includes/mailer.php';
 
 require_role('ADMIN');
 require_permission('manage_admins');
@@ -93,7 +94,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             $db->commit();
-            set_flash_message("Admin '{$name}' created successfully with {$role} role.", 'success');
+
+            // Dispatch welcome credentials email
+            $mailSuccess = send_account_credentials_email(
+                $email,
+                $name,
+                $password,
+                $role,
+                'admin',
+                [
+                    'Assigned Role' => $role,
+                    'Phone Number'  => $phone ?: 'Not Provided',
+                    'Account Status'=> $status
+                ]
+            );
+
+            if ($mailSuccess) {
+                set_flash_message("Admin '{$name}' created successfully with {$role} role. Login credentials sent to {$email}.", 'success');
+            } else {
+                set_flash_message("Admin '{$name}' created successfully with {$role} role, but credentials email could not be delivered. Please share login details manually.", 'warning');
+            }
             redirect('/views/admin/manage-admins.php');
         } catch (\Exception $e) {
             $db->rollBack();

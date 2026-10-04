@@ -72,7 +72,7 @@ require_once __DIR__ . '/../../includes/header.php';
                 <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Assign a faculty member to teach a subject.</p>
             </div>
             <a href="subject_assignments.php" class="text-sm font-semibold text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 flex items-center gap-1">
-                <i data-lucide="arrow-left" class="w-4 h-4"></i> Back to Assignments
+                <i data-lucide="arrow-left" class="w-4 h-4"></i> Back to Allocations
             </a>
         </div>
 

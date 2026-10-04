@@ -12,59 +12,86 @@ $quick_links = [];
 $more_links = [];
 
 if ($role === 'ADMIN') {
-    $quick_links = [
-        ['label' => 'Dashboard', 'url' => '/views/admin/dashboard.php'],
-        ['label' => 'Students', 'url' => '/views/admin/students.php'],
-        ['label' => 'Faculty', 'url' => '/views/admin/faculty.php'],
-        ['label' => 'Notices', 'url' => '/views/admin/notices.php'],
-        ['label' => 'Feedbacks', 'url' => '/views/admin/view-feedback.php'],
+    require_once __DIR__ . '/permission_middleware.php';
+
+    $admin_pages = [
+        ['label' => 'Dashboard', 'url' => '/views/admin/dashboard.php', 'permission' => 'dashboard'],
+        ['label' => 'Students', 'url' => '/views/admin/students.php', 'permission' => 'students'],
+        ['label' => 'Faculty', 'url' => '/views/admin/faculty.php', 'permission' => 'faculty'],
+        ['label' => 'Departments', 'url' => '/views/admin/departments.php', 'permission' => 'departments'],
+        ['label' => 'Semesters', 'url' => '/views/admin/semesters.php', 'permission' => 'semesters'],
+        ['label' => 'Subjects', 'url' => '/views/admin/subjects.php', 'permission' => 'subjects'],
+        ['label' => 'Subject Allocation', 'url' => '/views/admin/subject_assignments.php', 'permission' => 'subject_assignments'],
     ];
-    $more_links = [
-        ['label' => 'Departments', 'url' => '/views/admin/departments.php'],
-        ['label' => 'Subjects', 'url' => '/views/admin/subjects.php'],
-        ['label' => 'Timetables', 'url' => '/views/admin/timetables.php'],
+
+    $admin_more = [
+        ['label' => 'Timetables', 'url' => '/views/admin/timetables.php', 'permission' => 'timetables'],
+        ['label' => 'Notices', 'url' => '/views/admin/notices.php', 'permission' => 'notices'],
+        ['label' => 'Broadcasts', 'url' => '/views/admin/broadcasts.php', 'permission' => 'broadcasts'],
+        ['label' => 'Leave Requests', 'url' => '/views/admin/leave_requests.php', 'permission' => 'leave_requests'],
+        ['label' => 'Feedbacks', 'url' => '/views/admin/view-feedback.php', 'permission' => 'feedbacks'],
+        ['label' => 'Admission Inquiries', 'url' => '/views/admin/admission-inquiries.php', 'permission' => 'admission_inquiries'],
+        ['label' => 'Manage Admins', 'url' => '/views/admin/manage-admins.php', 'permission' => 'manage_admins'],
     ];
+
+    $quick_links = array_values(array_filter($admin_pages, function($l) {
+        return empty($l['permission']) || (function_exists('has_permission') && has_permission($l['permission']));
+    }));
+    $more_links = array_values(array_filter($admin_more, function($l) {
+        return empty($l['permission']) || (function_exists('has_permission') && has_permission($l['permission']));
+    }));
 } elseif ($role === 'FACULTY') {
     $quick_links = [
         ['label' => 'Dashboard', 'url' => '/views/faculty/dashboard.php'],
-        ['label' => 'My Students', 'url' => '/views/faculty/my_students.php'],
         ['label' => 'My Subjects', 'url' => '/views/faculty/my_subjects.php'],
-        ['label' => 'Attendance', 'url' => '/views/faculty/take_attendance.php'],
-        ['label' => 'Feedback', 'url' => '/feedback.php'],
+        ['label' => 'My Students', 'url' => '/views/faculty/my_students.php'],
+        ['label' => 'My Timetable', 'url' => '/views/faculty/timetable.php'],
+        ['label' => 'Study Materials', 'url' => '/views/faculty/study_materials.php'],
+        ['label' => 'Assignments Portal', 'url' => '/views/faculty/assignments.php'],
+        ['label' => 'Online Quizzes', 'url' => '/views/faculty/quizzes.php'],
     ];
     $more_links = [
-        ['label' => 'Marks', 'url' => '/views/faculty/manage_marks.php'],
-        ['label' => 'Timetable', 'url' => '/views/faculty/timetable.php'],
+        ['label' => 'Take Attendance', 'url' => '/views/faculty/take_attendance.php'],
+        ['label' => 'Internal Marks', 'url' => '/views/faculty/manage_marks.php'],
         ['label' => 'Notices', 'url' => '/views/faculty/notices.php'],
+        ['label' => 'Messages', 'url' => '/views/faculty/messages.php'],
+        ['label' => 'Apply Leave', 'url' => '/views/faculty/apply_leave.php'],
+        ['label' => 'My Profile', 'url' => '/views/faculty/view-profile.php'],
+        ['label' => 'Give Feedback', 'url' => '/feedback.php'],
     ];
 } elseif ($role === 'STUDENT') {
     $quick_links = [
         ['label' => 'Dashboard', 'url' => '/views/student/dashboard.php'],
         ['label' => 'My Subjects', 'url' => '/views/student/my_subjects.php'],
         ['label' => 'My Timetable', 'url' => '/views/student/my_timetable.php'],
-        ['label' => 'My Attendance', 'url' => '/views/student/my_attendance.php'],
-        ['label' => 'Feedback', 'url' => '/feedback.php'],
+        ['label' => 'Study Materials', 'url' => '/views/student/study_materials.php'],
+        ['label' => 'Assignments', 'url' => '/views/student/assignments.php'],
+        ['label' => 'Online Quizzes', 'url' => '/views/student/quizzes.php'],
     ];
     $more_links = [
-        ['label' => 'Study Materials', 'url' => '/views/student/study_materials.php'],
+        ['label' => 'My Attendance', 'url' => '/views/student/my_attendance.php'],
         ['label' => 'My Grades', 'url' => '/views/student/my_grades.php'],
         ['label' => 'Notices', 'url' => '/views/student/notices.php'],
+        ['label' => 'Messages', 'url' => '/views/student/messages.php'],
+        ['label' => 'Apply Leave', 'url' => '/views/student/apply_leave.php'],
         ['label' => 'My Profile', 'url' => '/views/student/view-profile.php'],
+        ['label' => 'Give Feedback', 'url' => '/feedback.php'],
     ];
 } else {
     // Landing page / Guest
     $quick_links = [
         ['label' => 'Home', 'url' => '/'],
         ['label' => 'About', 'url' => '/#about'],
-        ['label' => 'Portals', 'url' => '/views/auth/login.php'],
-        ['label' => 'Feedback', 'url' => '/feedback.php'],
+        ['label' => 'Departments', 'url' => '/#departments'],
+        ['label' => 'Notices', 'url' => '/#notices'],
+        ['label' => 'Admissions', 'url' => '/#admissions'],
         ['label' => 'Contact', 'url' => '/#contact'],
     ];
     $more_links = [
         ['label' => 'Student Portal', 'url' => '/views/auth/student_login.php'],
         ['label' => 'Faculty Portal', 'url' => '/views/auth/faculty_login.php'],
         ['label' => 'Admin Portal', 'url' => '/views/auth/admin_login.php'],
-        ['label' => 'Submit Feedback', 'url' => '/feedback.php'],
+        ['label' => 'Feedback', 'url' => '/feedback.php'],
     ];
 }
 ?>
@@ -90,7 +117,7 @@ if ($role === 'ADMIN') {
             <!-- Middle Column: Quick Links -->
             <div class="md:col-span-3 lg:col-span-3 lg:col-start-7">
                 <h3 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-[0.2em] mb-6 border-b border-slate-200 dark:border-slate-800 pb-2 inline-block">Pages</h3>
-                <ul class="space-y-4">
+                <ul class="space-y-3">
                     <?php foreach ($quick_links as $link): ?>
                         <li>
                             <a href="<?= htmlspecialchars($base_url . $link['url']) ?>" class="text-sm text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all duration-300 hover:translate-x-1 inline-flex items-center gap-2 group">
@@ -103,9 +130,9 @@ if ($role === 'ADMIN') {
             </div>
 
             <!-- Right Column: More Links -->
-            <div class="md:col-span-3 lg:col-span-2">
+            <div class="md:col-span-3 lg:col-span-3">
                 <h3 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-[0.2em] mb-6 border-b border-slate-200 dark:border-slate-800 pb-2 inline-block">More</h3>
-                <ul class="space-y-4">
+                <ul class="space-y-3">
                     <?php foreach ($more_links as $link): ?>
                         <li>
                             <a href="<?= htmlspecialchars($base_url . $link['url']) ?>" class="text-sm text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all duration-300 hover:translate-x-1 inline-flex items-center gap-2 group">

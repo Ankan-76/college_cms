@@ -72,6 +72,27 @@ require_once __DIR__ . '/../../includes/header.php';
             </a>
         </div>
 
+        <!-- Flash Message -->
+        <?php 
+        $flash = get_flash_message();
+        if ($flash): 
+            if ($flash['type'] === 'success') {
+                $bgClass = 'bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800';
+                $icon = 'check-circle';
+            } elseif ($flash['type'] === 'warning') {
+                $bgClass = 'bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800';
+                $icon = 'alert-triangle';
+            } else {
+                $bgClass = 'bg-rose-50 text-rose-800 border-rose-200 dark:bg-rose-900/30 dark:text-rose-400 dark:border-rose-800';
+                $icon = 'alert-circle';
+            }
+        ?>
+            <div class="p-4 rounded-xl border flex items-start gap-3 <?= $bgClass ?>">
+                <i data-lucide="<?= $icon ?>" class="w-5 h-5 shrink-0 mt-0.5"></i>
+                <p class="text-sm font-medium"><?= htmlspecialchars($flash['message']) ?></p>
+            </div>
+        <?php endif; ?>
+
         <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-4 sm:p-6 mb-6">
             <form method="GET" action="" class="flex flex-col md:flex-row gap-4 items-end">
                 <div class="flex-1 w-full">

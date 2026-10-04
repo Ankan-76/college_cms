@@ -26,6 +26,10 @@ $facultyEmail = $faculty['email'] ?? $_SESSION['email'] ?? '';
 $facultyDesignation = $faculty['designation'] ?? 'Lecturer';
 $facultyQualification = $faculty['qualification'] ?? 'M.Tech / Ph.D';
 $facultyStatus = $faculty['status'] ?? 'ACTIVE';
+$facultyPic = $faculty['profile_pic'] ?? $_SESSION['profile_pic'] ?? '';
+$facultyPicUrl = (!empty($facultyPic) && file_exists(__DIR__ . '/../../uploads/profiles/' . $facultyPic))
+    ? $base . '/uploads/profiles/' . htmlspecialchars($facultyPic)
+    : "https://ui-avatars.com/api/?name=" . urlencode($facultyName) . "&background=4f46e5&color=fff&bold=true&size=256";
 
 // Fetch primary department
 $deptStmt = $db->prepare("
@@ -297,16 +301,15 @@ require_once __DIR__ . '/../../includes/header.php';
             <div class="relative z-10 p-6 sm:p-8 lg:p-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
                 <!-- User Profile & Greeting -->
                 <div class="flex items-start sm:items-center gap-4 sm:gap-5">
-                    <div class="relative shrink-0">
-                        <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-tr from-indigo-600 via-indigo-700 to-purple-600 text-white flex items-center justify-center font-black text-2xl sm:text-3xl shadow-lg shadow-indigo-500/30 overflow-hidden ring-4 ring-white/70 dark:ring-slate-700/70 border-2 border-white/40">
-                            <?php if (!empty($faculty['profile_pic'])): ?>
-                                <img src="<?= $base ?>/uploads/profiles/<?= htmlspecialchars($faculty['profile_pic']) ?>" alt="<?= htmlspecialchars($facultyName) ?>" class="w-full h-full object-cover rounded-full">
-                            <?php else: ?>
-                                <?= strtoupper(substr($facultyName, 0, 1)) ?>
-                            <?php endif; ?>
+                    <a href="<?= $base ?>/views/faculty/view-profile.php" class="relative shrink-0 group block focus:outline-none focus:ring-4 focus:ring-indigo-500/50 rounded-full transition-all transform hover:scale-105" title="View Profile (<?= htmlspecialchars($facultyName) ?>)">
+                        <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-tr from-indigo-600 via-indigo-700 to-purple-600 text-white flex items-center justify-center shadow-lg shadow-indigo-500/30 overflow-hidden ring-4 ring-white/70 dark:ring-slate-700/70 group-hover:ring-indigo-400 border-2 border-white/40 transition-all relative">
+                            <img src="<?= $facultyPicUrl ?>" alt="<?= htmlspecialchars($facultyName) ?>" class="w-full h-full object-cover rounded-full transition-transform duration-300 group-hover:scale-110" onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name=<?= urlencode($facultyName) ?>&background=4f46e5&color=fff&bold=true&size=256';">
+                            <div class="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center text-white backdrop-blur-[1px]">
+                                <i data-lucide="user" class="w-6 h-6 drop-shadow"></i>
+                            </div>
                         </div>
                         <span class="absolute bottom-0 right-0 w-4 h-4 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-800 shadow-sm" title="Active Duty"></span>
-                    </div>
+                    </a>
                     <div>
                         <div class="flex flex-wrap items-center gap-2 mb-1.5">
                             <h1 class="text-2xl sm:text-3xl font-black tracking-tight text-slate-900 dark:text-white">
